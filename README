@@ -1,0 +1,12 @@
+My implimentation of GOAP AI.
+
+Far from perfect, but wowrks alright.
+Its here while I prepare it for use with my minecraft bot.
+
+You will need my astar pathfinding library, or something like
+it, since GOAP uses astar to make decisions.
+
+There is a test called pirate.  It more-or-less test/demos the
+GOAP library.
+
+Hope you have fun.
