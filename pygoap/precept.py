@@ -22,7 +22,7 @@ __version__ = ".001"
 PRECEPT_ALL   = 0
 PRECEPT_SIGHT = 1
 PRECEPT_SOUND = 2
-PRECEPT_FEEL  = 3
+PRECEPT_FEEL  = 4
 
 class Precept(object):
 	__slots__ = ['time', 'thing', 'sense']
@@ -31,3 +31,4 @@ class Precept(object):
 		self.sense = sense
 		self.thing = thing
 		self.time = time
+        self.parent = None   # used to find locations

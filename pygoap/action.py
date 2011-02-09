@@ -37,113 +37,132 @@ since the planning portion can have high memory requirements
 
 this way, there only needs to be one instance of the planning action node.
 
+for scheduling, we need to enable actions to run concurently.
+for example, we might want to move somewhere when we do something else,
+or whatever.  same goes for motor class.
+
+for scheduling, we need to specify whether or not the action can be called
+concurrently, and an automatic way to do so is by using a time-line, and
+a space-line.  since our agent operates in time and space, the changes
+to those should affect the decision made.
+
+for example, it would make sence more for the agent to do something quick
+that is in its que over something longer time is an issue.
+
+each action therefore should add time and distance as a cost.  those costs
+can be weighted by the planner when making decisions.
+
 """
 
 __version__ = ".003"
 
 class ActionNodeBase(object):
-	"""
-	action:
-		has a prereuisite
-		has a effect
-		has a reference to a class to "do" the action
+    """
+    action:
+        has a prereuisite
+        has a effect
+        has a reference to a class to "do" the action
 
-		once completed, then clean the memory (blackboard needs to be cleaned)
+        once completed, then clean the blackboard
 
-	this is like a singleton class, to cut down on memory usage
+    this is like a singleton class, to cut down on memory usage
 
-	TODO:
-		use XML to store the action's data.
-		these actions will "eval" statements.
-		names are matched as locals inside the bb passed
-	"""
+    TODO:
+        use XML to store the action's data.
+        names matched as locals inside the bb passed
+    """
 
-	def __init__(self, name, p=None, e=None):
-		self.name = name
-		self.prereqs = []
-		self.effects = []
+    def __init__(self, name, p=None, e=None):
+        self.name = name
+        self.prereqs = []
+        self.effects = []
 
-		self.start_func = None
+        # costs.
+        self.time_cost = 0
+        self.move_cost = 0
 
-		try:
-			self.effects.extend(e)
-		except:
-			self.effects.append(e)
+        self.start_func = None
 
-		try:
-			self.prereqs.extend(p)
-		except:
-			self.prereqs.append(p)
+        try:
+            self.effects.extend(e)
+        except:
+            self.effects.append(e)
 
-	def set_action_class(self, klass):
-		self.action_class = klass
+        try:
+            self.prereqs.extend(p)
+        except:
+            self.prereqs.append(p)
 
-	def valid(self, bb):
-		"""Given the bb, can we run this action?"""
-		raise NotImplementedError
+    def set_action_class(self, klass):
+        self.action_class = klass
 
-	# this is run when the action is succesful
-	# do something on the blackboard (varies by subclass)
-	def touch(self, bb):
-		raise NotImplementedError
+    # this should not be cached.
+    def valid(self, bb):
+        """Given the bb, can we run this action?"""
+        raise NotImplementedError
 
-	def __repr__(self):
-		return "<Action=\"%s\">" % self.name
+    # this is run when the action is succesful
+    # do something on the blackboard (varies by subclass)
+    def touch(self, bb):
+        raise NotImplementedError
+
+    def __repr__(self):
+        return "<Action=\"%s\">" % self.name
 
 class SimpleActionNode(ActionNodeBase):
-	def valid(self, bb):
-		for p in self.prereqs:
-			if p.valid(bb) == False:
-				return False
+    def valid(self, bb):
+        for p in self.prereqs:
+            if p.valid(bb) == False:
+                return False
 
-		return True
+        return True
 
-	def touch(self, bb):
-		[e.touch(bb) for e in self.effects]
+    def touch(self, bb):
+        [e.touch(bb) for e in self.effects]
 
 class CallableAction(object):
-	# when instanced, should be added to a que that will process
-	# not to be confused with a "SimplAction" which is used for
-	# planning.  Can be subclassed, etc.
-	# instead of duplicating the validator class, just have a
-	# reference to it to do that stuff
-	# also, emulate valid and touch
-	
-	def __init__(self, caller, validator):
-		self.caller = caller
-		self.validator = validator
-		self.state = ACTIONSTATE_NOT_STARTED
+    # when instanced, should be added to a que that will process
+    # not to be confused with a "SimpleAction" which is used for
+    # planning.  Can be subclassed, etc.
+    # instead of duplicating the validator class, just have a
+    # reference to it to do that stuff
+    # also, emulate valid and touch
+    
+    def __init__(self, caller, validator):
+        self.caller = caller
+        self.validator = validator
+        self.state = ACTIONSTATE_NOT_STARTED
 
-	def touch(self):
-		self.validator.touch(self.caller.blackboard)
-		
-	def valid(self):
-		return self.validator.valid(self.caller.blackboard)
+    def touch(self):
+        self.validator.touch(self.caller.blackboard)
+        
+    def valid(self):
+        return self.validator.valid(self.caller.blackboard)
 
-	def start(self):
-		self.state = ACTIONSTATE_RUNNING
-		print "starting:", self.__class__.__name__, self.caller
+    def start(self):
+        self.state = ACTIONSTATE_RUNNING
+        print "starting:", self.__class__.__name__, self.caller
 
-	def update(self):
-		raise NotImplementedError
+    def update(self, time):
+        raise NotImplementedError
 
-	def finish(self):
-		self.state = ACTIONSTATE_FINISHED
+    def finish(self):
+        self.state = ACTIONSTATE_FINISHED
 
 class CalledOnceAction(CallableAction):
-	"""
-	Is finished imediatly when started.
-	"""
-	def start(self):
-		self.state = ACTIONSTATE_FINISHED
-		print "doing:", self.__class__.__name__, self.caller
+    """
+    Is finished imediatly when started.
+    """
+    def start(self):
+        self.state = ACTIONSTATE_FINISHED
+        print "doing:", self.__class__.__name__, self.caller
 
-	def update(self):
-		pass
+    def update(self, time):
+        pass
 
-	def finish(self):
-		pass
-	
+    def finish(self):
+        pass
+    
 class PausableAction(CallableAction):
-	def pause(self):
-		self.state = ACTIONSTATE_PAUSED
+    def pause(self):
+        self.state = ACTIONSTATE_PAUSED

@@ -53,6 +53,8 @@ to make more realistic...
 	when ever a goal is satisfied (or not), then the results can be
 		stored in memory
 
+    Locations are can be goals, too!
+
 	predictive:
 		as is, stores information about other objects.
 		another goalmanager would have to be set up for each target
@@ -116,7 +118,6 @@ class GoapAgent(Agent):
 		self.goal_manager = GoalManager(self.blackboard)
 		self.plan_manager = PlanManager(self.blackboard)
 		self.mem_manager = MemoryManager(self.blackboard)
-		self.motor_manager = MotorManager(self.blackboard)
 
 		self.idle_timeout = 5
 		self.idle_counter = 0

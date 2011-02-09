@@ -127,11 +127,16 @@ class ActionPrereqBase(object):
         return "<ActionPrereq=\"%s\">" % self.prereq
 
 class BasicActionPrereq(ActionPrereqBase):
-    """Basic - just look for the presence of a tag."""
+    """
+    Basic - just look for the presence of a tag on the bb.
+    """
+
     def valid(self, bb):
-        """Given the bb, can we run this action?
         """
-        if self.prereq == None or self.prereq == "":
+        Given the bb, can we run this action?
+        """
+
+        if (self.prereq == None) or (self.prereq == ""):
             return True
         else:
             return self.prereq in bb.tags()
@@ -140,28 +145,49 @@ class BasicActionPrereq(ActionPrereqBase):
         return "<BasicActionPrereq=\"%s\">" % self.prereq
 
 class ExtendedActionPrereq(ActionPrereqBase):
+    """
+    These classes can use strings that evaluate variables on the blackboard.
+    """
+
     def __init__(self, prereq):
         super(ExtendedActionPrereq, self).__init__(prereq)
         self._validator = PyEval(prereq)
 
     def valid(self, bb):
-        r = self._validator.do_eval(bb)
-        #if DEBUG:
-            #dlog("validator - {0} {1} {2}".format(self, self._validator, r))
-            # breaks object security by accessing bb's data
-            #dlog("bb: {0}".format(bb.data))
-        return r
+        return self._validator.do_eval(bb)
 
     def __repr__(self):
-        return "<ExtendedActionPrereq=\"%s\">" % self.prereq
+        return "<ExtendedActionPrereq="%s\">" % self.prereq
+
+class LocationActionPrereq(ActionPrereqBase):
+    """
+    Location Based
+
+    For this to be valid, the location on the bb must be the same.
+    """
+
+    def __init__(self, location):
+        self.location = location
+
+    def valid(self, bb):
+        """
+        Do a pathfinding test to see if this action is valid or not
+        Obviously, care needs to be taken that this isn't called too much
+        """
+        pass
+
+    def __repr__(self):
+        return "<MovementActionPrereq="%s\">" % self.location
 
 class ActionEffectBase(object):
-    # valid checks to make sure is valid
-    # touching will tell a blackboard that it has happened
+    """
+    This object knows what should happen after an action succesfully happens
+    """
 
     def __init__(self, effect):
         self.effect = effect
 
+    # called when action is successful
     def touch(self, bb):
         raise NotImplementedError
 
@@ -169,7 +195,10 @@ class ActionEffectBase(object):
         return "<ActionEffect=\"%s\">" % self.effect
 
 class BasicActionEffect(ActionEffectBase):
-    """Basic - Simply post a tag with True as the value."""
+    """
+    Basic - Simply post a tag with True as the value.
+    """
+
     def touch(self, bb):
         bb.post(self.effect, True)
 
@@ -177,7 +206,10 @@ class BasicActionEffect(ActionEffectBase):
         return "<BasicActionEffect=\"%s\">" % self.effect
 
 class ExtendedActionEffect(ActionEffectBase):
-    """Extended - Use PyEval."""
+    """
+    Extended - Use PyEval.
+    """
+
     def __init__(self, effect):
         super(ExtendedActionEffect, self).__init__(effect)
         self._touchator = PyEval(effect)
@@ -194,29 +226,37 @@ class GoalBase(object):
         can be satisfied.
         can be valid
     """
+
     def __init__(self, s=None, r=None, v=True):
         self.satisfies = s
         self.relevancy = r
 
     def update(self, bb):
-        """Return a float 0-1 on how "relevent" this goal is.
-        Should be subclassed =)"""
+        """
+        Return a float 0-1 on how "relevent" this goal is.
+        Should be subclassed =)
+        """
         raise NotImplementedError
 
     def satisfied(self, bb):
+        """
+        Test whether or not this goal has been satisfied
+        """
         raise NotImplementedError
 
     def __repr__(self):
         return "<Goal=\"%s\">" % self.satisfies
 
 class SimpleGoal(GoalBase):
-    """Uses flags on a blackboard to test."""
+    """
+    Uses flags on a blackboard to test.
+    """
 
     def update(self, bb):
-        if self.satisfies not in bb.tags():
-            self.relevancy = 1
-        else:
+        if self.satisfies in bb.tags():
             self.relevancy = 0
+        else:
+            self.relevancy = 1
         return self
 
     def satisfied(self, bb):
@@ -226,10 +266,11 @@ class SimpleGoal(GoalBase):
         except KeyError:
             return False
 
+import sys
+import traceback
+
 # used when we are running python2.5...  osx
 def get_exception():
-    import sys
-    import traceback
     cla, exc, trbk = sys.exc_info()
     return traceback.format_exception(cla, exc, trbk)
 

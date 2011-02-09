@@ -19,44 +19,60 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from precept import PRECEPT_ALL
 
-__version__ = ".001"
+__version__ = ".002"
 
 DEBUG = False
 
 class Memory(object):
-	def __init__(self):
-		pass
+    """
+    Memory objects are "value-added" precepts.
+
+    This to add here could be a timestamp, previous action, location, mood, etc.
+    """
+
+    def __init__(self):
+        pass
 
 # many we could use a database or something that tracks memory for all agents,
 # rather than each doing its own memory
 
-# dict...maybe hold timestamps...then will rack lastseen, etc
+# dict...maybe hold timestamps...then will track lastseen, etc
 
 class MemoryManagerBase(object):
-	def __init__(self, blackboard):
-		self.blackboard = blackboard
+    def __init__(self, blackboard):
+        self.blackboard = blackboard
 
-	def add_memory(self, precept):
-		raise NotImplementedError
+    def upkeep(self):
+        """
+        This is supposed to remove old memories, sort them, whathaveyou.
+        """
+        pass 
 
-	def search(self, sense):
-		raise NotImplementedError
+    def make_memory(self, precept):
+        # memory objects 
+        pass
+
+    def add_memory(self, precept):
+        raise NotImplementedError
+
+    def search(self, sense):
+        raise NotImplementedError
 
 class MemoryManager(MemoryManagerBase):
-	def __init__(self, blackboard):
-		super(MemoryManager, self).__init__(blackboard)
-		self.data = []
+    def __init__(self, blackboard):
+        super(MemoryManager, self).__init__(blackboard)
+        self.data = []
 
-	def add_memory(self, precept):
-		self.data.append(precept)
+    def add_memory(self, precept):
+        self.data.append(precept)
 
-	def search(self, sense):
-		# return a copy, not the list
-		if sense == PRECEPT_ALL:
-			return list(self.data[:])
+    def search(self, sense):
+        # return a copy, not the list
+        if sense == PRECEPT_ALL:
+            return list(self.data[:])
 
-		return [p for p in self.data if p.sense == sense]
+        return [p for p in self.data if p.sense == sense]
 
 class SharedMemoryManager(MemoryManagerBase):
-	pass
-	
+    pass
+    
