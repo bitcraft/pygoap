@@ -54,7 +54,7 @@ can be weighted by the planner when making decisions.
 
 """
 
-__version__ = ".003"
+__version__ = ".004"
 
 class ActionNodeBase(object):
     """
@@ -121,13 +121,6 @@ class SimpleActionNode(ActionNodeBase):
         [e.touch(bb) for e in self.effects]
 
 class CallableAction(object):
-    # when instanced, should be added to a que that will process
-    # not to be confused with a "SimpleAction" which is used for
-    # planning.  Can be subclassed, etc.
-    # instead of duplicating the validator class, just have a
-    # reference to it to do that stuff
-    # also, emulate valid and touch
-    
     def __init__(self, caller, validator):
         self.caller = caller
         self.validator = validator
@@ -143,8 +136,14 @@ class CallableAction(object):
         self.state = ACTIONSTATE_RUNNING
         print "starting:", self.__class__.__name__, self.caller
 
-    def update(self, time):
-        raise NotImplementedError
+    def proceed(self):
+        pass
+
+    def update(self, time_passed):
+        if self.state == ACTIONSTATE_NOT_STARTED:
+            self.start()
+        elif self.state == ACTIONSTATE_RUNNING:
+            self.proceed(time_passed)
 
     def finish(self):
         self.state = ACTIONSTATE_FINISHED
@@ -154,15 +153,12 @@ class CalledOnceAction(CallableAction):
     Is finished imediatly when started.
     """
     def start(self):
-        self.state = ACTIONSTATE_FINISHED
-        print "doing:", self.__class__.__name__, self.caller
+        self.finish()
 
-    def update(self, time):
-        pass
-
-    def finish(self):
-        pass
-    
 class PausableAction(CallableAction):
     def pause(self):
         self.state = ACTIONSTATE_PAUSED
+
+    def update(self, time_passed):
+        if self.state != ACTIONSTATE_PAUSED:
+            CallableAction.update(self, time)

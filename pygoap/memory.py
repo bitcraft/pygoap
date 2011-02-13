@@ -17,8 +17,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from precept import PRECEPT_ALL
-
 __version__ = ".002"
 
 DEBUG = False
@@ -33,23 +31,22 @@ class Memory(object):
     def __init__(self):
         pass
 
+
 # many we could use a database or something that tracks memory for all agents,
 # rather than each doing its own memory
-
-# dict...maybe hold timestamps...then will track lastseen, etc
 
 class MemoryManagerBase(object):
     def __init__(self, blackboard):
         self.blackboard = blackboard
 
-    def upkeep(self):
+    def update(self, time_passed):
         """
         This is supposed to remove old memories, sort them, whathaveyou.
         """
         pass 
 
     def make_memory(self, precept):
-        # memory objects 
+        # memory objects go here 
         pass
 
     def add_memory(self, precept):
@@ -66,9 +63,9 @@ class MemoryManager(MemoryManagerBase):
     def add_memory(self, precept):
         self.data.append(precept)
 
-    def search(self, sense):
+    def search(self, sense=None):
         # return a copy, not the list
-        if sense == PRECEPT_ALL:
+        if sense == None:
             return list(self.data[:])
 
         return [p for p in self.data if p.sense == sense]

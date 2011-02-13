@@ -21,11 +21,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 modified from AIMA-python, Peter Norvig
 """
 
-__version__ = ".007"
+__version__ = ".009"
 
 from collections import deque
 from agent import Agent
-
+from action import ACTIONSTATE_FINISHED
+from precept import Precept
 
 
 def distance((ax, ay), (bx, by)):
@@ -81,10 +82,12 @@ class Environment(object):
         """
         thing.location = location or self.default_location(thing)
         self.things.append(thing)
+
+        # add the agent
         if isinstance(thing, Agent):
                 thing.performance = 0
+                thing.environment = self
                 self.agents.append(thing)
-                #agent.program(Precept(location=location))
 
     def update(self, time_passed):
         """
@@ -97,8 +100,15 @@ class Environment(object):
         # update time
         self.time += time_passed
 
+        # this is a band-aid until there is a fixed way to
+        # manage actions returned from agents
+        self.action_que = [ a for a in self.action_que if a != None ]
+
+        print self.action_que
+
         # update all the actions that may be running
-        precepts = [ a.update(time_passed) for action in self.action_que ]
+        precepts = [ a.update(time_passed) for a in self.action_que ]
+        precepts = [ p for p in precepts if p != None ]
 
         # remove actions that are completed
         self.action_que = [ a for a in self.action_que \
@@ -106,10 +116,11 @@ class Environment(object):
 
         # send precepts of each action to the agents
         for p in precepts:
-            self.action_que.extend([ a.program(p) for a in self.agents ])
+            actions = [ a.program(p) for a in self.agents ]
+            self.action_que.extend([ a for a in actions if a != None ])
         
         # let all the agents know that time has passed
-        t = Precept(time=time_passed) 
+        t = Precept(sense="time", time=self.time) 
         self.action_que.extend([ a.program(t) for a in self.agents ])
 
 class Pathfinding2D(object):
@@ -140,6 +151,22 @@ class XYEnvironment(Environment, Pathfinding2D):
         self.width = width
         self.height = height
 
+    def look(self, caller, direction=None, distance=None):
+        """
+        Simulate vision.
+
+        In normal circumstances, all kinds of things would happen here,
+        like ray traces.  For now, assume all objects can see every
+        other object
+        """
+        a = [ caller.program(
+            Precept(sense="sight", thing=t, location=t.location)) 
+            for t in self.things ] 
+
+        print "Look", a
+
+        self.action_que.extend(a)
+
     def objects_at(self, location):
         """
         Return all objects exactly at a given location.
@@ -151,7 +178,7 @@ class XYEnvironment(Environment, Pathfinding2D):
         Return all objects within radius of location.
         """
         radius2 = radius * radius
-        return [ obj for obj in self.things \ 
+        return [ obj for obj in self.things  
                 if distance2(location, obj.location) <= radius2 ]
 
     def default_location(self, thing):

@@ -17,18 +17,10 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-__version__ = ".001"
+__version__ = ".004"
 
-PRECEPT_ALL   = 0
-PRECEPT_SIGHT = 1
-PRECEPT_SOUND = 2
-PRECEPT_FEEL  = 4
+
 
 class Precept(object):
-	__slots__ = ['time', 'thing', 'sense']
-
-	def __init__(self, time, sense, thing):
-		self.sense = sense
-		self.thing = thing
-		self.time = time
-        self.parent = None   # used to find locations
+    def __init__(self, *arg, **kwargs):
+        self.__dict__.update(kwargs)

@@ -49,7 +49,7 @@ best guess:
 
 """
 
-__version__ = "goap v.016"
+__version__ = "goap v.017"
 
 DEBUG = False
 
@@ -157,7 +157,7 @@ class ExtendedActionPrereq(ActionPrereqBase):
         return self._validator.do_eval(bb)
 
     def __repr__(self):
-        return "<ExtendedActionPrereq="%s\">" % self.prereq
+        return "<ExtendedActionPrereq=\"%s\">" % self.prereq
 
 class LocationActionPrereq(ActionPrereqBase):
     """
@@ -177,7 +177,7 @@ class LocationActionPrereq(ActionPrereqBase):
         pass
 
     def __repr__(self):
-        return "<MovementActionPrereq="%s\">" % self.location
+        return "<MovementActionPrereq=\"%s\">" % self.location
 
 class ActionEffectBase(object):
     """
@@ -262,10 +262,11 @@ class SimpleGoal(GoalBase):
     def satisfied(self, bb):
         try:
             bb.read(self.satisfies)
-            return True
         except KeyError:
             return False
-
+        else:
+            return True
+    
 import sys
 import traceback
 
