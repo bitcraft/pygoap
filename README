@@ -9,4 +9,11 @@ it, since GOAP uses astar to make decisions.
 There is a test called pirate.  It more-or-less test/demos the
 GOAP library.
 
+pygoap is under a rather large rewrite as I prepare it for
+usage in large environments.  This includes an environment
+modeler and pathfinding, among other things.
+
+That said, it is possible that it won't run at checkout,
+at least, for a couple weeks (things move slow here).
+
 Hope you have fun.
