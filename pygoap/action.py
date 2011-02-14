@@ -54,7 +54,7 @@ can be weighted by the planner when making decisions.
 
 """
 
-__version__ = ".004"
+__version__ = ".005"
 
 class ActionNodeBase(object):
     """
@@ -140,12 +140,13 @@ class CallableAction(object):
         pass
 
     def update(self, time_passed):
-        if self.state == ACTIONSTATE_NOT_STARTED:
-            self.start()
-        elif self.state == ACTIONSTATE_RUNNING:
+        if self.state == ACTIONSTATE_RUNNING:
             self.proceed(time_passed)
+        elif self.state == ACTIONSTATE_NOT_STARTED:
+            self.start()
 
     def finish(self):
+        self.touch()
         self.state = ACTIONSTATE_FINISHED
 
 class CalledOnceAction(CallableAction):

@@ -17,7 +17,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-__version__ = ".002"
+__version__ = ".003"
 
 DEBUG = False
 
@@ -47,7 +47,7 @@ class MemoryManagerBase(object):
 
     def make_memory(self, precept):
         # memory objects go here 
-        pass
+        return precept
 
     def add_memory(self, precept):
         raise NotImplementedError
@@ -61,14 +61,17 @@ class MemoryManager(MemoryManagerBase):
         self.data = []
 
     def add_memory(self, precept):
-        self.data.append(precept)
+        # saving time precepts would be a waste of memory
+        if hasattr(precept, "time"):
+            return
+        self.data.append(self.make_memory(precept))
 
     def search(self, sense=None):
         # return a copy, not the list
         if sense == None:
             return list(self.data[:])
 
-        return [p for p in self.data if p.sense == sense]
+        return [p for p in self.data if hasattr(p, sense)]
 
 class SharedMemoryManager(MemoryManagerBase):
     pass
