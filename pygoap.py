@@ -53,6 +53,7 @@ to handle idle actions:
 """
 
 from heapq import heappop, heappush
+from heapq import heappushpop
 from collections import deque
 
 import random
@@ -60,9 +61,6 @@ import sys
 import traceback
 import copy
 
-# old versions of python wont have heappushpop
-# provide somthing similiar from utilities
-from heapq import heappushpop
 
 ACTIONSTATE_NOT_STARTED = 0
 ACTIONSTATE_FINISHED    = 1
@@ -421,8 +419,6 @@ class PyEval(object):
             return float(0)
 
         cmpop = cmpop[i]
-
-        #side0, side1 = sorted((side0, side1))i
 
         if (cmpop == ">") or (cmpop == ">="):
             if side0 == 0: return side1
