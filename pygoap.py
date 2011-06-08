@@ -59,8 +59,6 @@ from collections import deque
 import random
 import sys
 import traceback
-import copy
-
 
 ACTIONSTATE_NOT_STARTED = 0
 ACTIONSTATE_FINISHED    = 1
@@ -283,8 +281,7 @@ class PyEval(object):
 
         if bb != None:
             # copy the dictionaries
-            for tag in bb.tags():
-                safe_dict[tag] = bb.read(tag)
+            safe_dict.update(bb)            
 
         return safe_dict
 
@@ -329,7 +326,7 @@ class PyEval(object):
         # the bb was modified
         for key, value in d.items():
             if key[:2] != "__":
-                bb.post(key, value)
+                bb[key] = value
 
         return True
 
@@ -453,10 +450,12 @@ class PlanningNode(object):
         self.g = calcG(self)
         self.h = h
 
+        self.bb_delta = {}
+
         if parent != None:
-            self.bb_delta = copy.deepcopy(parent.bb_delta)
+            self.bb_delta.update(parent.bb_delta)
         elif bb != None:
-            self.bb_delta = copy.deepcopy(bb)
+            self.bb_delta.update(bb)
 
         if touch: self.obj.touch(self.bb_delta)
 
@@ -484,7 +483,7 @@ class BasicActionPrereq(object):
 
         if (self.prereq == None) or (self.prereq == ""):
             return 1.0
-        elif self.prereq in bb.tags():
+        elif self.prereq in bb.keys():
             return 1.0
         else:
             return 0.0
@@ -505,7 +504,8 @@ class ExtendedActionPrereq(object):
         #return e.do_eval(self.prereq, bb)
 
         e = PyEval()
-        d = copy.deepcopy(bb.tagDB)
+        d = {}
+        d.update(bb)
         return e.cmp_bb(d, self.prereq)
 
     def __repr__(self):
@@ -520,7 +520,7 @@ class BasicActionEffect(object):
         self.effect = effect
 
     def touch(self, bb):
-        bb.post(self.effect, True)
+        bb[self.effect] = True
 
     def __repr__(self):
         return "<BasicActionEffect=\"%s\">" % self.effect
@@ -595,7 +595,7 @@ class SimpleGoal(GoalBase):
 
     def satisfied(self, bb):
         try:
-            bb.read(self.satisfies)
+            bb[self.satisfies]
         except KeyError:
             return 0.0
         else:
@@ -621,7 +621,8 @@ class EvalGoal(GoalBase):
 
     def satisfied(self, bb):
         e = PyEval()
-        d = copy.deepcopy(bb.tagDB)
+        d = {}
+        d.update(bb)
         return e.cmp_bb(d, self.expr)
 
 class SimpleActionNode(object):
@@ -710,13 +711,13 @@ class CallableAction(object):
         mark the parent's blackboard to reflect changes
         of a successful execution
         """
-        self.validator.touch(self.caller.blackboard)
+        self.validator.touch(self.caller.blackboard.tagDB)
         
     def valid(self, do=False):
         """
         make sure the action is able to be started
         """
-        return self.validator.valid(self.caller.blackboard)
+        return self.validator.valid(self.caller.blackboard.tagDB)
 
     def start(self):
         """
@@ -1016,7 +1017,7 @@ class GoapAgent(object):
         pushback = None     # the pushback is used to limit node access in the heap
         success = False
 
-        keyNode = PlanningNode(None, start_action, 0, 0, start_blackboard, False)
+        keyNode = PlanningNode(None, start_action, 0, 0, start_blackboard.tagDB, False)
 
         heap = [(0, keyNode)]
 
