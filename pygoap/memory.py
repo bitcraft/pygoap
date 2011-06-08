@@ -21,6 +21,9 @@ __version__ = ".003"
 
 DEBUG = False
 
+def dlog(text):
+    print "mem: %s" % text
+
 class Memory(object):
     """
     Memory objects are "value-added" precepts.

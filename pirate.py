@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Copyright 2010, Leif Theden
 
@@ -17,6 +15,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+__version__ = ".004"
+
 import csv, sys, os, imp
 
 try:
@@ -24,22 +24,15 @@ try:
 except ImportError:
   pass
 
-from pygoap.action import SimpleActionNode
-from pygoap.pygoap import BasicActionPrereq, ExtendedActionPrereq, SimpleGoal
-from pygoap.pygoap import BasicActionEffect, ExtendedActionEffect
-from pygoap.agent import GoapAgent
-from pygoap.environment import XYEnvironment, PRECEPT_ALL
+from pygoap import *
+
 
 """
-two threads:
-	one for core logic
-	one for updating the display
-
 lets make a drunk pirate.
 
 scenerio:
-	the pirate begins by idling
-	after 5 seconds of the simulation, he sees a girl
+    the pirate begins by idling
+    after 5 seconds of the simulation, he sees a girl
 
 he should attempt to get drunk and sleep with her...
 ...any way he knows how.
@@ -48,103 +41,122 @@ he should attempt to get drunk and sleep with her...
 global_actions = {}
 
 def load_commands(agent, path):
-	def is_expression(string):
-		if "=" in string:
-			return True
-		else:
-			return False
+    def is_expression(string):
+        if "=" in string:
+            return True
+        else:
+            return False
 
-	def parse_line(p, e):
-		prereqs = []
-		effects = []
+    def parse_line(p, e):
+        prereqs = []
+        effects = []
 
-		if p == "":
-			prereqs = None
-		else:
-			for x in p.split(","):
-				x = x.strip()
-				if is_expression(x):
-					p2 = ExtendedActionPrereq(x)
-				else:
-					p2 = BasicActionPrereq(x)
+        if p == "":
+            prereqs = None
+        else:
+            for x in p.split(","):
+                x = x.strip()
+                if is_expression(x):
+                    p2 = ExtendedActionPrereq(x)
+                else:
+                    p2 = BasicActionPrereq(x)
 
-				prereqs.append(p2)
+                prereqs.append(p2)
 
-		for x in e.split(","):
-			x = x.strip()
-			if is_expression(x):
-				e2 = ExtendedActionEffect(x)
-			else:
-				e2 = BasicActionEffect(x)
+        for x in e.split(","):
+            x = x.strip()
+            if is_expression(x):
+                e2 = ExtendedActionEffect(x)
+            else:
+                e2 = BasicActionEffect(x)
 
-			effects.append(e2)
+            effects.append(e2)
 
-		return prereqs, effects
+        return prereqs, effects
 
-	# more hackery
-	mod = imp.load_source("actions", os.path.join(path, "actions.py"))
+    # more hackery
+    mod = imp.load_source("actions", os.path.join(path, "actions.py"))
 
-	csvfile = open(os.path.join(path, "actions.csv"))
-	sample = csvfile.read(1024)
-	dialect = csv.Sniffer().sniff(sample)
-	has_header = csv.Sniffer().has_header(sample)
-	csvfile.seek(0)
+    csvfile = open(os.path.join(path, "actions.csv"))
+    sample = csvfile.read(1024)
+    dialect = csv.Sniffer().sniff(sample)
+    has_header = csv.Sniffer().has_header(sample)
+    csvfile.seek(0)
 
-	r = csv.reader(csvfile, delimiter=';')
+    r = csv.reader(csvfile, delimiter=';')
 
-	for n, p, e in r:
-		prereqs, effects = parse_line(p, e)
-		action = SimpleActionNode(n, prereqs, effects)
-		action.set_action_class(mod.__dict__[n])
-		agent.plan_manager.add_action(action)
+    for n, p, e in r:
+        prereqs, effects = parse_line(p, e)
+        action = SimpleActionNode(n, prereqs, effects)
+        action.set_action_class(mod.__dict__[n])
+        agent.add_action(action)
 
-def find_females(precepts):
-	humans = [p.thing for p in precepts if isinstance(p.thing, Human)]
-	females = [h for h in humans if h.gender == "Female"]
+        global_actions[n] = action
 
-	# remove duplicates
-	females = list(set(females))
-	return females
+def is_female(precept):
+    try:
+        thing = precept.thing
+    except AttributeError:
+        pass
+    else:
+        if isinstance(thing, Human):
+            return thing.gender == "Female"
 
 class Human(GoapAgent):
-	def __init__(self, gender):
-		super(Human, self).__init__()
-		self.gender = gender
+    def __init__(self, gender):
+        super(Human, self).__init__()
+        self.gender = gender
 
-	def program(self, precept):
-		action = super(Human, self).program(precept)
-		females = find_females(self.mem_manager.search(PRECEPT_ALL))
-		if females:
-			self.blackboard.post("target", females[0])
+    def handle_precept(self, precept):
+        if is_female(precept):
+            self.blackboard.post("sees_lady", True)
+            
+        return super(Human, self).handle_precept(precept)
 
-		return action
+    def __repr__(self):
+        return "<Human: %s>" % self.gender
 
-class Rum(object):
-	pass
+def run_once():
+    pirate = Human("Male")
 
-pirate = Human("Male")
+    # lets load some pirate commands
+    load_commands(pirate, os.path.join("npc", "pirate"))
 
-# lets load some pirate commands
-load_commands(pirate, os.path.join("npc", "pirate"))
+    pirate.current_action = global_actions["idle"].action_class(pirate, global_actions["idle"])
+    pirate.current_action.start()
 
-# he has high aspirations in life
-pirate.goal_manager.add_goal(SimpleGoal("is_drunk"))
-pirate.goal_manager.add_goal(SimpleGoal("is_laid"))
+    # the idle goal will always be run when it has nothing better to do
+    pirate.add_goal(SimpleGoal("idle", value=.1))
 
-#pirate.blackboard.post("is_evil", True)
-#pirate.blackboard.post("is_weak", True)
+    # he has high aspirations in life
+    # NOTE: he needs to be drunk to get laid (see action map: actions.csv)
+    pirate.add_goal(SimpleGoal("is_drunk"))
+    pirate.add_goal(SimpleGoal("is_laid"))
+    #pirate.add_goal(EvalGoal("money >= 50"))
 
-# make our little cove
-formosa = XYEnvironment()
+    # make our little cove
+    formosa = XYEnvironment()
 
-# add the pirate
-formosa.add_thing(pirate)
-formosa.add_thing(Rum())
+    # add the pirate
+    formosa.add_thing(pirate)
 
-wench = Human("Female")
+    # simulate the pirate idling
+    formosa.run(15)
 
-formosa.run(10)
-print "=== wench"
-formosa.add_thing(wench)
-formosa.run(10)		
+    # add a female
+    print "=== wench appears"
+    wench = Human("Female")
+    formosa.add_thing(wench)
 
+    # simulate with the pirate and female
+    formosa.run(15)
+
+if __name__ == "__main__":
+    import cProfile
+    import pstats
+
+    cProfile.run('run_once()', "pirate.prof")
+
+    p = pstats.Stats("pirate.prof")
+    p.strip_dirs()
+    p.sort_stats('time').print_stats(10)

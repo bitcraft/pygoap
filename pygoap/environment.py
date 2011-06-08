@@ -23,6 +23,7 @@ modified from AIMA-python, Peter Norvig
 
 __version__ = ".009"
 
+import random
 from collections import deque
 from agent import Agent
 from action import ACTIONSTATE_FINISHED
@@ -182,5 +183,5 @@ class XYEnvironment(Environment, Pathfinding2D):
                 if distance2(location, obj.location) <= radius2 ]
 
     def default_location(self, thing):
-        return (random.choice(self.width), random.choice(self.height))
+        return (random.randint(0, self.width), random.randint(0, self.height))
 

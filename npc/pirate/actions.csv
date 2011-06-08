@@ -1,15 +1,15 @@
-idle; ;
-drink_rum; has_rum; is_drunk
-buy_rum; money >= 25; has_rum , money = money - 25
-steal_rum; is_evil; has_rum
-steal_money; is_evil; money = money + 25
-sell_loot; has_loot; money = money + 50
-get_loot; is_sailing; has_loot
-go_sailing; has_boat; is_sailing
-beg_money; is_weak; money = money + 25
-buy_boat; money >= 25; has_boat, money = money - 25
-woo_lady; money >= 50, target; has_lady, money = money - 50
-get_laid; has_lady, is_drunk; is_laid
-pilage_lady; is_evil, has_rum; is_laid
-make_rum; has_sugar; has_rum
-do_dance; ; money = money + 25
+idle;           ;                                           idle
+do_dance;       ;                                           money = money + 25
+drink_rum;      has_rum;                                    is_drunk, charisma = charisma + 10
+buy_rum;        money >= 25;                                has_rum, money = money - 25
+steal_rum;      is_evil;                                    has_rum
+steal_money;    is_evil;                                    money = money + 25
+sell_loot;      has_loot;                                   money = money + 25
+get_loot;       is_sailing;                                 has_loot
+go_sailing;     has_boat;                                   is_sailing
+beg_money;      is_weak;                                    money = money + 25
+buy_boat;       money >= 25;                                has_boat, money = money - 25
+woo_lady;       money >= 100, sees_lady, charisma >= 5;      has_lady, money = money - 100
+get_laid;       has_lady, is_drunk;                         is_laid
+make_rum;       has_sugar;                                  has_rum
+pilage_lady;    is_evil, is_drunk, sees_lady;               is_laid

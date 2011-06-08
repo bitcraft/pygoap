@@ -1,75 +1,80 @@
-# -*- coding: utf-8 -*-
+from pygoap import CallableAction, CalledOnceAction, ACTIONSTATE_FINISHED
 
-from pygoap.action import CallableAction, CalledOnceAction
+
+
+class look(CalledOnceAction):
+    def start(self):
+        self.caller.environment.look(self.caller)
+        super(look, self).start()
 
 class pickup_object(CalledOnceAction):
-	def start(self):
-		print "pickup"
-
-class move(CallableAction):
-	def start(self):
-		pass
-
-	def update(self):
-		pass
-
-	def finish(self):
-		pass
+    def start(self):
+        print "pickup"
 
 class drink_rum(CallableAction):
-	def start(self):
-		super(drink_rum, self).start()
-		self.caller.drunkness = 1
-		print "drinking!"
-		
-	def update(self):
-		print "still drinking!!!", self.caller.drunkness
-		self.caller.drunkness += 1
-		if self.caller.drunkness == 5:
-			self.finish()
-		
-	def finish(self):
-		super(drink_rum, self).finish()
-		print "give me more #$*@$#@ rum!"
+    def start(self):
+        self.caller.drunkness = 1
+        super(drink_rum, self).start()
+        print self.caller, "is drinking some rum"
+        
+    def update(self, time):
+        if self.valid():
+            print self.caller, "is still drinking..."
+            self.caller.drunkness += 1
+            if self.caller.drunkness == 5:
+                self.finish()
+        else:
+            self.fail()     
 
-class idle(CalledOnceAction):
-	pass
+    def finish(self):
+        print self.caller, "says \"give me more #$*@$#@ rum!\""
+        super(drink_rum, self).finish()
+
+class idle(CallableAction):
+    def ok_finish(self):
+        return True
+
+    def finish(self):
+        self.state = ACTIONSTATE_FINISHED
+        print self.caller, "finished idling"
+        #CallableAction.finish(self)
+        #del self.caller.blackboard.tagDB['idle']
 
 class buy_rum(CalledOnceAction):
-	pass
+    pass
 
 class steal_rum(CalledOnceAction):
-	pass
+    pass
 
 class steal_money(CalledOnceAction):
-	pass
+    pass
 
 class sell_loot(CalledOnceAction):
-	pass
+    pass
 
 class get_loot(CalledOnceAction):
-	pass
+    pass
 
 class go_sailing(CalledOnceAction):
-	pass
+    pass
 
 class beg_money(CalledOnceAction):
-	pass
+    pass
 
 class buy_boat(CalledOnceAction):
-	pass
+    pass
 
 class woo_lady(CalledOnceAction):
-	pass
+    pass
 
 class get_laid(CalledOnceAction):
-	pass
+    pass
 
 class pilage_lady(CalledOnceAction):
-	pass
+    pass
 
 class make_rum(CalledOnceAction):
-	pass
+    pass
 
 class do_dance(CalledOnceAction):
-	pass
+    pass

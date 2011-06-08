@@ -23,15 +23,14 @@ from mapdb import MemoryDB
 from astar import Astar, PathfindingNode, PathfindingError
 from agent import Blackboard
 
-DEBUG = False
+"""
+TODO:
+Hueristics for the action map!
 
-# since this gets attached to mobiles, don't inherit from mud objects?
-# a shared resource should be the planning map
-# this could be a singleton for all objects in the game
-# it is up to the agent classes to define a list of actions they can do
-# THIS COULD BE A HEAP, BUT NEEDS TO BE RESORTED CONSTANTLY
-# GOALS COULD INFOR THE MANAGER THAT THEY HAVE CHANGED, THEN COULD PUSH/POP
-# A HEAP
+"""
+
+
+DEBUG = False
 
 # EXPECTS:  these could be planning nodes that the agent knows are not available
 # but knows that in the future could be available.  this would allow for preparation
@@ -111,16 +110,17 @@ class Planner(Astar):
             #        return True
 
     # this function will only be called once
-    def build_node(self, obj, parent, cost, h):
-        node = super(Planner, self).build_node(obj, parent, cost, h)
+    def build_node(self, parent, obj, cost, h):
+        node = super(Planner, self).build_node(parent, obj, cost, h)
         node.bb_delta = copy.deepcopy(self.blackboard)
 
         # runtime class patching, ftw
         self.build_node = self.build_node_shim
 
-    def build_node_shim(self, obj, parent, cost, h):
+    # this function will be called after the first build-node
+    def build_node_shim(self, parent, obj, cost, h):
         if obj.valid(parent.bb_delta):
-            node = super(Planner, self).build_node(obj, parent, cost, h)
+            node = super(Planner, self).build_node(parent, obj, cost, h)
         else:
             return None
 
@@ -135,7 +135,7 @@ class PlanningMap(MemoryDB):
     a map of actions.  and a goal.
     """
 
-    def get_surrounding3(self, action):
+    def get_surrounding3(self, action, goal=None):
         """
         return a list of anything we can do
         if action==None, then return a list of all available nodes.
@@ -165,8 +165,8 @@ class PlanManager(object):
     def add_action(self, action):
         self.action_map.add_node(action)
 
-    def get_surrounding(self, action):
-        surr = self.action_map.get_surrounding3(action)
+    def get_surrounding(self, action, goal=None):
+        surr = self.action_map.get_surrounding3(action, goal)
 
         # don't ask how i figured out this magic
         l = len(surr)

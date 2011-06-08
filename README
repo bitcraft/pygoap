@@ -1,19 +1,32 @@
+pyGOAP v.2
+
 My implimentation of GOAP AI.
 
-Far from perfect, but works alright.
-Its here while I prepare it for use with my minecraft bot.
+The main concept of GOAP is that AI is not a static table
+or set of states.  Rather, GOAP uses a A* like search to
+find solutions to goals at runtime.  This frees the
+designer of setting up complex behavior trees.  This
+python implementation uses a simple text file and a python
+script to define actions for a GOAP agent.  You can have
+a look in the npc folder and pirate.py.
 
-You will need my astar pathfinding library, or something like
-it, since GOAP uses astar to make decisions.
+There is a test called pirate.py.  It more-or-less test/demos
+the GOAP library.
 
-There is a test called pirate.  It more-or-less test/demos the
-GOAP library.
+You should be able to run the pirate demo and watch how he
+satisfies his two goals: getting drunk and laid.  =)
+You'll notice that he dances a lot.  Thats because the dance
+action gives him 25 money, and he needs 100 to woo a lady.
+
+The source has a ton of comments, but most of them are just
+notes that I take so I don't forget stuff, since I don't
+always have time to work on this, and forget some of the
+details and ideas that I have for the future.  That said,
+some of the comments are not truen, and you shouldn't trust
+them.  =)
 
 pygoap is under a rather large rewrite as I prepare it for
 usage in large environments.  This includes an environment
 modeler and pathfinding, among other things.
-
-That said, it is possible that it won't run at checkout,
-at least, for a couple weeks (things move slow here).
 
 Hope you have fun.

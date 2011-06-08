@@ -65,7 +65,7 @@ for performance:
 
 """
 
-__version__ = ".012"
+__version__ = ".013"
 
 DEBUG = True
 
@@ -115,7 +115,7 @@ class GoapAgent(Agent):
         super(GoapAgent, self).__init__()
         self.goal_manager = GoalManager(self.blackboard)
         self.plan_manager = PlanManager(self.blackboard)
-        self.mem_manager = MemoryManager(self.blackboard)
+        self.mem_manager  = MemoryManager(self.blackboard)
 
         self.idle_timeout = 5
         self.idle_counter = 0
@@ -197,6 +197,7 @@ class GoapAgent(Agent):
                 self.plan_manager.make_plan()
                 plan = self.blackboard.read("plan")
             except PathfindingError:
+                if DEBUG: print "goal cannot be reached", goal
                 self.goal_manager.invalidate_goal(goal)
                 self.blackboard.remove("goal")
                 return

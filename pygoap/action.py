@@ -17,25 +17,20 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-ACTIONSTATE_NOT_STARTED = 0
-ACTIONSTATE_FINISHED    = 1
-ACTIONSTATE_RUNNING     = 2
-ACTIONSTATE_PAUSED      = 3
-
 """
-this class was orginally one, but to cut on memory usage, I have
+This class was orginally one, but to cut on memory usage, I have
 split the action class into two parts based on usage:
 
-* planning
-* doing stuff in an environment
+Nodes:       For Planning
+ActionClass: For the environment
 
-there is still a tight coupling between the two, but this will save
-memory in this way:
-when the game is processing a lot of actions, according to the
-environments que, each will have to be instanced, but, this isn't good,
-since the planning portion can have high memory requirements
+Nodes should only be instanced once, and will be used by the planner.
 
-this way, there only needs to be one instance of the planning action node.
+ActionClasses will be instanced everytime the agent wants to perform
+an action in the environment.  This is the class you want to change if
+you want the agent to actually do something that it is planning on doing.
+
+TODO/NOTES:
 
 for scheduling, we need to enable actions to run concurently.
 for example, we might want to move somewhere when we do something else,
@@ -54,18 +49,31 @@ can be weighted by the planner when making decisions.
 
 """
 
-__version__ = ".005"
+__version__ = ".007"
+
+ACTIONSTATE_NOT_STARTED = 0
+ACTIONSTATE_FINISHED    = 1
+ACTIONSTATE_RUNNING     = 2
+ACTIONSTATE_PAUSED      = 3
+
+
+from utilities import PyEval
+
+
+def dlog(text):
+    print "action: %s" % text
+
 
 class ActionNodeBase(object):
     """
-    action:
+    Action Node:
         has a prereuisite
         has a effect
         has a reference to a class to "do" the action
 
         once completed, then clean the blackboard
 
-    this is like a singleton class, to cut down on memory usage
+    This class is for planning use only!
 
     TODO:
         use XML to store the action's data.
@@ -76,10 +84,6 @@ class ActionNodeBase(object):
         self.name = name
         self.prereqs = []
         self.effects = []
-
-        # costs.
-        self.time_cost = 0
-        self.move_cost = 0
 
         self.start_func = None
 
@@ -96,20 +100,32 @@ class ActionNodeBase(object):
     def set_action_class(self, klass):
         self.action_class = klass
 
-    # this should not be cached.
     def valid(self, bb):
-        """Given the bb, can we run this action?"""
+        """
+        Given the bb, can we run this action?
+
+        This should not be cached.
+        """
         raise NotImplementedError
 
-    # this is run when the action is succesful
-    # do something on the blackboard (varies by subclass)
     def touch(self, bb):
+        """
+        This is run when the action is succesful
+       
+        Should do something to the blackboard to make sure planner
+        knows we've completed successfully. 
+        """
         raise NotImplementedError
 
     def __repr__(self):
         return "<Action=\"%s\">" % self.name
 
 class SimpleActionNode(ActionNodeBase):
+    """
+    This Node class deligates valid and touch to "validator" and
+    "prereq" classes.
+    """
+
     def valid(self, bb):
         for p in self.prereqs:
             if p.valid(bb) == False:
@@ -121,6 +137,13 @@ class SimpleActionNode(ActionNodeBase):
         [e.touch(bb) for e in self.effects]
 
 class CallableAction(object):
+    """
+    The Action class is used for actions that require the action to run
+    over time.  They will be updated as often as the agent is updated.
+
+    You should override, start, proceed, and finish.
+    """
+
     def __init__(self, caller, validator):
         self.caller = caller
         self.validator = validator
@@ -151,7 +174,7 @@ class CallableAction(object):
 
 class CalledOnceAction(CallableAction):
     """
-    Is finished imediatly when started.
+    Action is finished immediately when started.
     """
     def start(self):
         self.finish()
@@ -163,3 +186,110 @@ class PausableAction(CallableAction):
     def update(self, time_passed):
         if self.state != ACTIONSTATE_PAUSED:
             CallableAction.update(self, time)
+
+class ActionPrereqBase(object):
+    def __init__(self, p):
+        self.prereq = p
+
+    def valid(self, bb):
+        raise NotImplementedError
+
+    def __repr__(self):
+        return "<ActionPrereq=\"%s\">" % self.prereq
+
+class BasicActionPrereq(ActionPrereqBase):
+    """
+    Basic - just look for the presence of a tag on the bb.
+    """
+
+    def valid(self, bb):
+        """
+        Given the bb, can we run this action?
+        """
+
+        if (self.prereq == None) or (self.prereq == ""):
+            return True
+        else:
+            return self.prereq in bb.tags()
+
+    def __repr__(self):
+        return "<BasicActionPrereq=\"%s\">" % self.prereq
+
+class ExtendedActionPrereq(ActionPrereqBase):
+    """
+    These classes can use strings that evaluate variables on the blackboard.
+    """
+
+    def __init__(self, prereq):
+        super(ExtendedActionPrereq, self).__init__(prereq)
+        self._validator = PyEval(prereq)
+
+    def valid(self, bb):
+        return self._validator.do_eval(bb)
+
+    def __repr__(self):
+        return "<ExtendedActionPrereq=\"%s\">" % self.prereq
+
+class LocationActionPrereq(ActionPrereqBase):
+    """
+    Location Based
+
+    For this to be valid, the location on the bb must be the same.
+    """
+
+    def __init__(self, location):
+        self.location = location
+
+    def valid(self, bb):
+        """
+        Do a pathfinding test to see if this action is valid or not
+        Obviously, care needs to be taken that this isn't called too much
+        """
+        pass
+
+    def __repr__(self):
+        return "<MovementActionPrereq=\"%s\">" % self.location
+
+class ActionEffectBase(object):
+    """
+    This object knows what should happen after an action succesfully happens
+    """
+
+    def __init__(self, effect):
+        self.effect = effect
+
+    # called when action is successful
+    def touch(self, bb):
+        raise NotImplementedError
+
+    def __repr__(self):
+        return "<ActionEffect=\"%s\">" % self.effect
+
+class BasicActionEffect(ActionEffectBase):
+    """
+    Basic - Simply post a tag with True as the value.
+    """
+
+    def touch(self, bb):
+        bb.post(self.effect, True)
+
+    def __repr__(self):
+        return "<BasicActionEffect=\"%s\">" % self.effect
+
+class ExtendedActionEffect(ActionEffectBase):
+    """
+    Extended - Use PyEval.
+    """
+
+    def __init__(self, effect):
+        super(ExtendedActionEffect, self).__init__(effect)
+        self._touchator = PyEval(effect)
+
+    def touch(self, bb):
+        bb = self._touchator.do_exec(bb)
+
+    def __repr__(self):
+        return "<ExtendedActionEffect=\"%s\">" % self.effect
+
+
+
