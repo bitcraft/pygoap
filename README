@@ -1,32 +1,55 @@
-pyGOAP v.2
+for goap 3
 
-My implimentation of GOAP AI.
+planner
 
-The main concept of GOAP is that AI is not a static table
-or set of states.  Rather, GOAP uses a A* like search to
-find solutions to goals at runtime.  This frees the
-designer of setting up complex behavior trees.  This
-python implementation uses a simple text file and a python
-script to define actions for a GOAP agent.  You can have
-a look in the npc folder and pirate.py.
+planner sould be able to reasonably predict the cost of repeating actions
 
-There is a test called pirate.py.  It more-or-less test/demos
-the GOAP library.
+agents:
+in an rpg game, the player can expect to talk to NPC'sr and and to gather
+information about quests, items, other npc's, etc.
 
-You should be able to run the pirate demo and watch how he
-satisfies his two goals: getting drunk and laid.  =)
-You'll notice that he dances a lot.  Thats because the dance
-action gives him 25 money, and he needs 100 to woo a lady.
+i think that goap can become an engine of sorts, dictating every action in the
+game.  basic play elements can be emulated through goap and would not have to
+be explicitly coded into the game.  take simple "hello" meet/greet actions with
+an npc:
+    npc will have a insatable desire to talk to a player
+    they will have a different thing to say depending on mood/state of player
 
-The source has a ton of comments, but most of them are just
-notes that I take so I don't forget stuff, since I don't
-always have time to work on this, and forget some of the
-details and ideas that I have for the future.  That said,
-some of the comments are not truen, and you shouldn't trust
-them.  =)
+a side effect of this will that npc's could possibly become more lifelike as
+they can move around the game world to satisfy goals.  to moderate and conrol
+the npc's and to make the game more enjoyable, npc's can have goals that are
+only relevant at certain times of day or days of the week.
 
-pygoap is under a rather large rewrite as I prepare it for
-usage in large environments.  This includes an environment
-modeler and pathfinding, among other things.
+in the harvest moon series for example, the nps do have certain schedules that
+they will loosely follow.  this makes the game play predictable once their
+simple schedule is learned.  imo, giving the npc's too much freedom to act wiil
+make the game world seem more random, and potentially frusterating to play.
 
-Hope you have fun.
+tying the speech system to goap agents could make the gameplay more immersive
+by allowing the player to ask unscripted questions.  while developing a system
+that perfectly synthesizes english is not a viable option, giving the player
+the option to ask canned questions, unrealted to the quet or story, with the
+ability to choose specfic parts of the question is a definate cool thing.
+
+for example, the player might ask an npc "have you seen gary?".  the goap
+agent can then search it's memories of gary and give a response to the player.
+because this would be based on the agent's memory, and not some canned
+response, it will simotaniously make the make more immersive and releave the
+game designers and writters the burden to creating dialog.
+
+a frusterating aspect of some games is dealing with faction alliances.  for
+example, in some games, killing or doing some negative action against a member
+of a faction will cause all members of that faction to instantly become hostile
+toward the player.  this is unrealistic in situations where the information
+that our your hostility could not have reached the other party.
+
+simulating the spread of information could also be simulated in goap by
+creating goals that one agent wants to tell other agents things that he saw the
+player do.  for example, they may be nuetral npc's that will gossip with other
+npc's in distant towns.  or, members of one faction may use radio, phones,
+letters, messengers, etc to tell other faction members about the player.
+
+this too could be emulated with goap, and would not have to be explicitly
+programmed.
+
+ 

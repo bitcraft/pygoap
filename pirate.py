@@ -15,147 +15,153 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-__version__ = ".004"
-
-import csv, sys, os, imp
-
-try:
-  import psyco
-except ImportError:
-  pass
-
-from pygoap import *
-
-
 """
 lets make a drunk pirate.
 
 scenerio:
     the pirate begins by idling
-    after 5 seconds of the simulation, he sees a girl
+    soon....he spyies a woman
 
 he should attempt to get drunk and sleep with her...
 ...any way he knows how.
 """
 
+__version__ = ".008"
+
+from pygoap.agent import GoapAgent
+from pygoap.environment import ObjectBase
+from pygoap.tiledenvironment import TiledEnvironment
+from pygoap.goals import *
+import os, imp, sys
+
+from pygame.locals import *
+
+
+stdout = sys.stdout
 global_actions = {}
 
 def load_commands(agent, path):
-    def is_expression(string):
-        if "=" in string:
-            return True
-        else:
-            return False
-
-    def parse_line(p, e):
-        prereqs = []
-        effects = []
-
-        if p == "":
-            prereqs = None
-        else:
-            for x in p.split(","):
-                x = x.strip()
-                if is_expression(x):
-                    p2 = ExtendedActionPrereq(x)
-                else:
-                    p2 = BasicActionPrereq(x)
-
-                prereqs.append(p2)
-
-        for x in e.split(","):
-            x = x.strip()
-            if is_expression(x):
-                e2 = ExtendedActionEffect(x)
-            else:
-                e2 = BasicActionEffect(x)
-
-            effects.append(e2)
-
-        return prereqs, effects
-
-    # more hackery
     mod = imp.load_source("actions", os.path.join(path, "actions.py"))
+    global_actions = dict([ (c.__name__, c()) for c in mod.exported_actions ])
 
-    csvfile = open(os.path.join(path, "actions.csv"))
-    sample = csvfile.read(1024)
-    dialect = csv.Sniffer().sniff(sample)
-    has_header = csv.Sniffer().has_header(sample)
-    csvfile.seek(0)
+    #for k, v in global_actions.items():
+    #    print "testing action {}..."
+    #    v.self_test()
 
-    r = csv.reader(csvfile, delimiter=';')
-
-    for n, p, e in r:
-        prereqs, effects = parse_line(p, e)
-        action = SimpleActionNode(n, prereqs, effects)
-        action.set_action_class(mod.__dict__[n])
-        agent.add_action(action)
-
-        global_actions[n] = action
+    [ agent.add_action(a) for a in global_actions.values() ]
 
 def is_female(precept):
     try:
         thing = precept.thing
     except AttributeError:
-        pass
+        return False
     else:
         if isinstance(thing, Human):
             return thing.gender == "Female"
 
+
 class Human(GoapAgent):
-    def __init__(self, gender):
+    def __init__(self, gender, name="welp"):
         super(Human, self).__init__()
         self.gender = gender
-
-    def handle_precept(self, precept):
-        if is_female(precept):
-            self.blackboard.post("sees_lady", True)
-            
-        return super(Human, self).handle_precept(precept)
+        self.name = name
 
     def __repr__(self):
         return "<Human: %s>" % self.gender
 
+
 def run_once():
-    pirate = Human("Male")
+    import pygame
 
-    # lets load some pirate commands
-    load_commands(pirate, os.path.join("npc", "pirate"))
+    pygame.init()
+    screen = pygame.display.set_mode((480, 480))
+    pygame.display.set_caption('Pirate Island')
 
-    pirate.current_action = global_actions["idle"].action_class(pirate, global_actions["idle"])
-    pirate.current_action.start()
-
-    # the idle goal will always be run when it has nothing better to do
-    pirate.add_goal(SimpleGoal("idle", value=.1))
-
-    # he has high aspirations in life
-    # NOTE: he needs to be drunk to get laid (see action map: actions.csv)
-    pirate.add_goal(SimpleGoal("is_drunk"))
-    pirate.add_goal(SimpleGoal("is_laid"))
-    #pirate.add_goal(EvalGoal("money >= 50"))
-
+    screen_buf = pygame.Surface((240, 240))
+    
     # make our little cove
-    formosa = XYEnvironment()
+    formosa = TiledEnvironment("formosa.tmx")
 
-    # add the pirate
-    formosa.add_thing(pirate)
+    time = 0
+    interactive = 1
 
-    # simulate the pirate idling
-    formosa.run(15)
+    run = True
+    while run:
+        stdout.write("=============== STEP {} ===============\n".format(time))
 
-    # add a female
-    print "=== wench appears"
-    wench = Human("Female")
-    formosa.add_thing(wench)
+        formosa.run(1)
 
-    # simulate with the pirate and female
-    formosa.run(15)
+        if time == 1:
+            pirate = Human("Male", "jack")
+            load_commands(pirate, os.path.join("npc", "pirate"))
+            #pirate.add_goal(SimpleGoal(is_idle=True))
+            pirate.add_goal(SimpleGoal(is_drunk=True))
+            formosa.add_thing(pirate)
+
+        elif time == 3:
+            rum = ObjectBase("rum")
+            #pirate.add_goal(HasItemGoal(pirate, rum))
+            formosa.add_thing(rum)
+
+        elif time == 5:
+            formosa.move(rum, pirate.position)
+            pass
+
+        elif time == 6:
+            wench = Human("Female", "wench")
+            formosa.add_thing(wench)
+
+        screen_buf.fill((0,128,255))
+        formosa.render(screen_buf)
+        pygame.transform.scale2x(screen_buf, screen)
+        pygame.display.flip()
+
+        stdout.write("\nPRESS ANY KEY TO CONTINUE".format(time))
+        stdout.flush()
+
+        # wait for a keypress
+        try:
+            if interactive:
+                event = pygame.event.wait()
+            else:
+                event = pygame.event.poll()
+            while event:
+                if event.type == QUIT:
+                    run = False
+                    break
+
+                if not interactive: break
+
+                if event.type == KEYDOWN:
+                    if event.key == K_ESCAPE:
+                        run = False
+                        break
+
+                if event.type == KEYUP: break
+
+                if interactive:
+                    event = pygame.event.wait()
+                else:
+                    event = pygame.event.poll()
+
+        except KeyboardInterrupt:
+            run = False
+
+        stdout.write("\n\n");
+        time += 1
+
+        if time == 8: run = False
+
 
 if __name__ == "__main__":
     import cProfile
     import pstats
 
-    cProfile.run('run_once()', "pirate.prof")
+
+    try:
+        cProfile.run('run_once()', "pirate.prof")
+    except KeyboardInterrupt:
+        pass
 
     p = pstats.Stats("pirate.prof")
     p.strip_dirs()
