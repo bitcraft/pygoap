@@ -1,5 +1,18 @@
 """
-fill in later
+Copyright 2010, 2011 Leif Theden
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 from environment import ObjectBase
@@ -23,9 +36,7 @@ class GoapAgent(ObjectBase):
     """
     AI Agent
 
-    every agent should have at least one goal (otherwise, why use it?)
     inventories will be implemented using precepts and a list.
-
     currently, only one action running concurrently is supported.
     """
 
@@ -36,13 +47,12 @@ class GoapAgent(ObjectBase):
     def __init__(self):
         self.idle_timeout = 30
         self.bb           = Blackboard()
-        self.mem_manager  = MemoryManager(self)
+        #self.mem_manager  = MemoryManager(self)
         self.planner      = plan
 
         self.current_goal   = None
 
         self.goals = []             # all goals this instance can use
-        self.invalid_goals = []     # goals that cannot be satisfied now
         self.filters = []           # list of methods to use as a filter
         self.actions = []           # all actions this npc can perform
         self.plan = []              # list of actions to perform

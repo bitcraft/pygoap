@@ -1,5 +1,5 @@
 """
-Copyright 2010, Leif Theden
+Copyright 2010, 2011 Leif Theden
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -20,13 +20,13 @@ lets make a drunk pirate.
 
 scenerio:
     the pirate begins by idling
-    soon....he spyies a woman
+    soon....he spies a woman
 
 he should attempt to get drunk and sleep with her...
 ...any way he knows how.
 """
 
-__version__ = ".008"
+__version__ = ".009"
 
 from pygoap.agent import GoapAgent
 from pygoap.environment import ObjectBase
@@ -130,12 +130,12 @@ def run_once():
                     run = False
                     break
 
-                if not interactive: break
-
                 if event.type == KEYDOWN:
                     if event.key == K_ESCAPE:
                         run = False
                         break
+
+                if not interactive: break
 
                 if event.type == KEYUP: break
 

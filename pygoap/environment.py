@@ -1,6 +1,23 @@
 """
+Copyright 2010, 2011 Leif Theden
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
+"""
 Since a pyGOAP agent relies on cues from the environment when planning, having
-a stable and effecient virtual environment is paramount.  
+a stable and efficient virtual environment is paramount.  
 
 When coding your game or simulation, you can think of the environment as the
 conduit that connects your actors on screen to their simulated thoughts.  This
@@ -13,7 +30,6 @@ object, but can instead query the object for things to do with it.
 """
 
 from actionstates import *
-from objectflags import *
 from itertools import chain, repeat, product, izip
 
 
@@ -159,7 +175,7 @@ class Environment(object):
 
     def broadcast_precepts(self, precepts, agents=None):
         """
-        for effeciency, please use this for sending a list of precepts
+        for efficiency, please use this for sending a list of precepts
         """
         
         if agents == None:
@@ -174,12 +190,12 @@ class Environment(object):
         """
         override this to model the way that precept objects move in the
         simulation.  by default, all precept objects will be distributed
-        indiscrimitely to all agents.
+        indiscriminately to all agents.
 
-        while this behaviour may be desireable for some types of precepts,
+        while this behavior may be desirable for some types of precepts,
         it doesn't make sense in many.
 
-        the two big thigs to model here would be vision and sound.
+        the two big things to model here would be vision and sound.
         """
 
         return precept

@@ -5,42 +5,42 @@ THIS IS MOSTLY NOTES FOR MYSELF
 
 planner
 
-planner sould be able to reasonably predict the cost of repeating actions
+planner should be able to reasonably predict the cost of repeating actions
 
 agents:
-in an rpg game, the player can expect to talk to NPC'sr and and to gather
+in an rpg game, the player can expect to talk to NPC's and and to gather
 information about quests, items, other npc's, etc.
 
 i think that goap can become an engine of sorts, dictating every action in the
 game.  basic play elements can be emulated through goap and would not have to
 be explicitly coded into the game.  take simple "hello" meet/greet actions with
 an npc:
-    npc will have a insatable desire to talk to a player
+    npc will have a insatiable desire to talk to a player
     they will have a different thing to say depending on mood/state of player
 
 a side effect of this will that npc's could possibly become more lifelike as
-they can move around the game world to satisfy goals.  to moderate and conrol
+they can move around the game world to satisfy goals.  to moderate and control
 the npc's and to make the game more enjoyable, npc's can have goals that are
 only relevant at certain times of day or days of the week.
 
 in the harvest moon series for example, the nps do have certain schedules that
 they will loosely follow.  this makes the game play predictable once their
-simple schedule is learned.  imo, giving the npc's too much freedom to act wiil
-make the game world seem more random, and potentially frusterating to play.
+simple schedule is learned.  imo, giving the npc's too much freedom to act will
+make the game world seem more random, and potentially frustrating to play.
 
 tying the speech system to goap agents could make the gameplay more immersive
 by allowing the player to ask unscripted questions.  while developing a system
 that perfectly synthesizes english is not a viable option, giving the player
-the option to ask canned questions, unrealted to the quet or story, with the
-ability to choose specfic parts of the question is a definate cool thing.
+the option to ask canned questions, unrelated to the quest or story, with the
+ability to choose specific parts of the question is a definite cool thing.
 
 for example, the player might ask an npc "have you seen gary?".  the goap
 agent can then search it's memories of gary and give a response to the player.
 because this would be based on the agent's memory, and not some canned
-response, it will simotaniously make the make more immersive and releave the
-game designers and writters the burden to creating dialog.
+response, it will simultaneously make the make more immersive and relieve the
+game designers and writers the burden to creating dialog.
 
-a frusterating aspect of some games is dealing with faction alliances.  for
+a frustrating aspect of some games is dealing with faction alliances.  for
 example, in some games, killing or doing some negative action against a member
 of a faction will cause all members of that faction to instantly become hostile
 toward the player.  this is unrealistic in situations where the information
@@ -48,7 +48,7 @@ that our your hostility could not have reached the other party.
 
 simulating the spread of information could also be simulated in goap by
 creating goals that one agent wants to tell other agents things that he saw the
-player do.  for example, they may be nuetral npc's that will gossip with other
+player do.  for example, they may be neutral npc's that will gossip with other
 npc's in distant towns.  or, members of one faction may use radio, phones,
 letters, messengers, etc to tell other faction members about the player.
 

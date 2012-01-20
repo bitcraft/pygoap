@@ -1,4 +1,21 @@
 """
+Copyright 2010, 2011 Leif Theden
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
+"""
 These are the building blocks for creating pyGOAP agents that are able to
 interact with their environment in a meaningful way.
 
@@ -9,14 +26,6 @@ objects to consume.
 These classes will be known to an agent, and chosen by the planner as a means
 to satisfy the current goal.  They will be instanced and the the agent will
 execute the action in some way, one after another.
-
-There is a delicate balance between the actions here and the "ActionEffects"
-and "ActionPrereqs" that you will have to master.  A simple way to mentally
-distinguish them is that the prereqs and effects are clues to the planner to
-behave in a certain way and will never change anything except a blackboard.
-The action classes here are the 'guts' for the action and will modify the game
-environment in some meaningful way.
-
 
 Actions need to be split into ActionInstances and ActionBuilders.
 
@@ -35,7 +44,7 @@ test_fail_msg = "some goal is returning None on a test, this is a bug."
 class ActionBuilder(object):
     """
     ActionBuilders examine a blackboard and return a list of actions
-    that can be succesfully completed at the the time.
+    that can be successfully completed at the the time.
     """
 
     def get_actions(self, caller, bb):
@@ -173,7 +182,7 @@ class CallableAction(InstancedAction):
 
 class CalledOnceAction(CallableAction):
     """
-    Is finished imediatly when started.
+    Is finished immediately when started.
     """
 
     def start(self):
