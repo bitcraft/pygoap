@@ -5,7 +5,7 @@ for python 2.x and pygame 1.9
 
 please check out the source for hints on how the library works.  this is under constant rewrite, and i only work on it occasionally.  so needless to say: not stable.
 
-you can watch it work by running "pirate.py".
+you can watch it work by running "test.py".
 
 
 many thanks to opengameart.org for providing and hosting the tileset used in the project.  tiles for the map can be found at:
