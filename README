@@ -1,9 +1,15 @@
-this is pygoap v.3
-for python 2.x and pygame 1.9
+pygoap v.3
+requires python 2.x
+
+PyGoap is a small library for designing AI in python.  The basic library is based off of a well-known idea of using graph searches to to create realistic agents in real-time.  Behavior is determined in real-time and is extremely open ended and well suited for emergent behaviors.
+
+Agents, or npcs, can be programmed very simply with an easy to understand api.  Check the 'npcs' folder and read through actions.py to get an idea of how it works.
+
+This library is not complete, but is working as-is.  The demo gives you a simple diagram of the game world and the debugging information near the bottom lets you know what is going on 'in the heads' of the agents.  Note: the demo requires pygame.
 
 
 
-please check out the source for hints on how the library works.  this is under constant rewrite, and i only work on it occasionally.  so needless to say: not stable.
+Please check out the source for hints on how the library works.  this is under constant rewrite, and i only work on it occasionally.  so needless to say: not stable.
 
 you can watch it work by running "test.py".
 
