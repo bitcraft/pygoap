@@ -6,16 +6,10 @@ This implementation uses sqlite3 as a backend for storing memories.
 The MemManager class is not used.
 """
 
-import sqlite3
-from sqlalchemy import *
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relation, sessionmaker
-
 from collections import defaultdict
 
 DEBUG = 0
 
-Base = declarative_base()
 
 class Tag(object):
     """
@@ -31,22 +25,6 @@ class Tag(object):
 
     def __repr__(self):
         return "<Tag: {}>".format(self.kw)
-
-class Memory(Base):
-    __tablename__ = 'memory'
-
-    id = Column(Integer, primary_key=True)
-    owner = Column(String(255))
-    value = Column(String(255))
-
-    def __init__(self, owner, value):
-        self.owner = owner
-        self.value = value
-
-
-# initialize our database
-#engine = create_engine('sqlite://')
-#Base.metadata.create_all(engine)
 
 
 class MemoryManager(object):
@@ -110,7 +88,8 @@ class Blackboard(object):
     and would require a more realistic simulation of intelligence.
 
     however, i will still develop blackboards with the intention that they are
-    shared, so that in the future, it will be easier to simulate the borg-mind.
+    shared, so that in the future, it will be easier to simulate agents with
+    shared knowledge and subtle communication.
     """
 
     def __init__(self):

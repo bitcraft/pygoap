@@ -7,9 +7,10 @@ conduit that connects your actors on screen to their simulated thoughts.  This
 environment simply provides enough basic information to the agents to work.  It
 is up to you to make it useful.
 
-objects should be able to produce actions that would be useful.  this concept
-comes from the sims, where each agent doesn't need to know how to use every
-object, but can instead query the object for things to do with it.
+objects should be able to produce actions that would be useful, rather than the
+virtual actors knowing eacatly how to use and what to do with other objects.
+This concept comes from 'The Sims', where each agent doesn't need to know how
+to use every object, but can instead query the object for actions to do with it.
 """
 
 from actionstates import *
@@ -73,8 +74,6 @@ class Precept(object):
 class Environment(object):
     """Abstract class representing an Environment.  'Real' Environment classes
     inherit from this.
-    The environment keeps a list of .objects and .agents (which is a subset
-    of .objects). Each agent has a .performance slot, initialized to 0.
     """
 
     def __init__(self, things=[], agents=[], time=0):

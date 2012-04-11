@@ -92,8 +92,9 @@ class CallableAction(InstancedAction):
 
         # NOTE: may be better written with itertools
 
-        if len(self.prereqs) == 0: return 1.0
         if bb == None: raise Exception
+
+        if len(self.prereqs) == 0: return 1.0
         total = [ i.test(bb) for i in self.prereqs ]
         print "[goal] {} test {}".format(self, total)
         #if 0 in total: return 0
@@ -119,6 +120,7 @@ class CallableAction(InstancedAction):
         """
         self.state = ACTIONSTATE_RUNNING
 
+
     def update(self, time):
         """
         actions which occur over time should implement
@@ -129,17 +131,20 @@ class CallableAction(InstancedAction):
         """
         pass
 
+
     def fail(self, reason=None):
         """
         maybe what we planned to do didn't work for whatever reason
         """
         self.state = ACTIONSTATE_FAILED
 
+
     def abort(self):
         """
         stop the action without the ability to complete or continue
         """
         self.state = ACTIONSTATE_BAILED
+
 
     def finish(self):
         """
@@ -148,6 +153,7 @@ class CallableAction(InstancedAction):
         if self.state == ACTIONSTATE_RUNNING:
             self.state = ACTIONSTATE_FINISHED
 
+
     def ok_finish(self):
         """
         determine if the action can finish now
@@ -155,6 +161,7 @@ class CallableAction(InstancedAction):
         should bail if it is forced to finish.
         """
         return self.state == ACTIONSTATE_FINISHED
+
 
     def pause(self):
         """

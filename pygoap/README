@@ -1,22 +1,3 @@
-Copyright 2010, Leif Theden
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-
-
-
-
 how to handle ai?  multiprocessing to get around the GIL in CPython.
 why not threads?  because we are CPU restricted, not IO.
 
@@ -26,15 +7,15 @@ this will allow for expectations, since a memory can be simulated in the future
 memory:
 should be a heap
 memory added will be wrapped with a counter
-everytime a memory is fetched, the counter will be added
+every time a memory is fetched, the counter will be added
 eventually, memories not being used will be removed
 and the counters will be reset
 
 memories should be a tree
-if a memory is being added that is similiar to an existing memory,
+if a memory is being added that is similar to an existing memory,
 then the existing memory will be updated, rather than replaced.
 
-since goals and prereqs share a common function, "valid", it makes sence to
+since goals and prereqs share a common function, "valid", it makes sene to
 make them subclasses of a common class.
 
 looking at actions.csv, it is easy to see that the behaviour of the agent will
@@ -45,27 +26,27 @@ action map.
 
 with some extra steps, i would like to make it possible that the agent can
 infer the prereq's to a goal through clues provided within the objects that the
-agent interacts with, rather than difining them within the class.  i can forsee
-a performace penality for this, but that could be offset by constructing
+agent interacts with, rather than defining them within the class.  i can foresee
+a performance penality for this, but that could be offset by constructing
 training environments for the agent and then storing the action map that the
-agent creats during training.
+agent creates during training.
 
 the planner:
-GOAP calls for a hurrstic to be used to find the optimal solution and to reduce
+GOAP calls for a heuristic to be used to find the optimal solution and to reduce
 the number of checks made.  in a physical environment where a star is used,
-it makes sence to just find a vector from the current searched node to the
+it makes sense to just find a vector from the current searched node to the
 goal, but in action planning, there is no spatial dimension where a simple
 solution like that can be used.
 
-without a huerstic, a* is just a tree search.  the heurstic will increase the
-effeciency of the planner and possibly give more consitsent results.  it can
-also be used to guide an agents behavoiur by manipulating some values.
+without a heuristic, a* is just a tree search.  the heuristic will increase the
+efficiency of the planner and possibly give more consistent results.  it can
+also be used to guide an agents behavior by manipulating some values.
 
 for now, while testing and building the library, the h value will not be used.
-when the library is more complete, it would make sence to build a complete
-agent, then construct a set of artificial scenereos to train the agent.
-based on data from the scenerios, it could be possible to hardcode the h
-values.  the planner could then be optimised for certain scenereos.
+when the library is more complete, it would make sense to build a complete
+agent, then construct a set of artificial scenarios to train the agent.
+based on data from the scenarios, it could be possible to hardcode the h
+values.  the planner could then be optimized for certain scenarios.
 
 This module contains the most commonly used parts of the system.  Classes that
 have many related sibling classes are in other modules.
@@ -73,23 +54,23 @@ have many related sibling classes are in other modules.
 
 since planning is done on the blackboard and i would like agents to be able to
 make guesses, or plans about other agents, then agents will have to somehow be
-able to be stored on and maipulated on a blackboard.  this may meant that
+able to be stored on and manipulated on a blackboard.  this may meant that
 agents and precepts will be the same thing
 
 1/15/12:
 overhauled the concepts of goals, prereqs, and effects and rolled them into
 one class.  with the new system of instanced actions, it makes design sense to
 consolidate them, since they all have complimentary functionality.  from a
-performace standpoint, it may make sense to keep the seperate, but this way is
+performance standpoint, it may make sense to keep the separate, but this way is
 much easier to conceptualize in your mind, and i am not making an system that
-is performace sensative....this is python.
+is performance sensitive....this is python.
 
 simplify holding/inventory:
     an objects location should always be a tuple of:
     ( holding object, position )
 
 this will make position very simple to sort.  the position in the tuple should
-be a value the that holding object can make sence of, for example, an
+be a value the that holding object can make sense of, for example, an
 environment might expect a zone, and (x,y), while an agent would want an index
 number in their inventory.
 
@@ -97,6 +78,6 @@ a side effect will be that location goals and holding goals can be consolidated
 into one function.
 
 new precepts may render a current plan invalid.  to account for this, an agent
-will replan everytime it receives a precept.  a better way would be to tag a
+will re-plan every time it receives a precept.  a better way would be to tag a
 type of precept and then if a new one that directly relates to the plan arrives
-then replan.
+then re-plan.

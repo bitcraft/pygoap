@@ -8,9 +8,6 @@ DEBUG = 0
 
 def get_children(caller, parent, actions, dupe_parent=False):
     """
-    get the children of this action
-
-    behaves like a tree search, kinda, not really sure, actually
     return every other action on this branch that has not already been used
     """
 
@@ -100,10 +97,6 @@ class GoalBase(object):
     Goals:
         can be satisfied.
         can be valid
-
-    This is meant to be a superclass along with a validator class to create
-    goals and action prereqs at runtime.  When creating designing subclasses,
-    sibling superclass should be a validator.
 
     Goals, ActionPrereqs and ActionEffects are now that same class.  They share
     so much functionality and are so logically similar that they have been made
