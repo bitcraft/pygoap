@@ -21,7 +21,7 @@ class TiledEnvironment(XYEnvironment):
         for l in xrange(0, len(self.tiledmap.layers)):
             for y in xrange(0, self.tiledmap.height):
                 for x in xrange(0, self.tiledmap.width):
-                    tile = self.tiledmap.get_tile_image(x, y, l)
+                    tile = self.tiledmap.getTileImage(x, y, l)
                     xx = x * self.tiledmap.tilewidth
                     yy = y * self.tiledmap.tileheight
                     if not tile == 0:

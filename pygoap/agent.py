@@ -4,6 +4,8 @@ from blackboard import Blackboard, MemoryManager, Tag
 from actionstates import *
 
 
+DEBUG = 0
+
 NullAction = InstancedAction()
 
 
@@ -95,7 +97,7 @@ class GoapAgent(ObjectBase):
         # our filters may have caused us to ignore the precept
         if pct == None: return None
        
-        print "[agent] {} recv'd pct {}".format(self, pct)
+        if DEBUG: print "[agent] {} recv'd pct {}".format(self, pct)
 
         # this line has been added for debugging purposes
         self.plan = []
@@ -115,7 +117,7 @@ class GoapAgent(ObjectBase):
         s = [ g for g in s if g[0] > 0 ]
         s.sort(reverse=True)
 
-        print "[agent] goals {}".format(s)
+        if DEBUG: print "[agent] goals {}".format(s)
 
         # starting for the most relevant goal, attempt to make a plan      
         for score, goal in s:
@@ -126,13 +128,15 @@ class GoapAgent(ObjectBase):
                 self.bb,
                 goal)
 
-            if ok:
+            if ok and DEBUG:
                 print "[agent] {} has planned to {}".format(self, goal)
                 pretty = list(reversed(plan[:]))
                 print "[agent] {} has plan {}".format(self, pretty)
                 return plan
-            else:
+            elif DEBUG:
                 print "[agent] {} cannot {}".format(self, goal)
+            elif ok:
+                return plan
 
         return []
 
@@ -143,7 +147,8 @@ class GoapAgent(ObjectBase):
             return NullAction
 
     def running_actions(self):
-        return self.current_action()
+        action = self.current_action()
+        return action
 
     def next_action(self):
         """
@@ -157,7 +162,10 @@ class GoapAgent(ObjectBase):
 
         # this action is done, so return the next one
         if current_action.state == ACTIONSTATE_FINISHED:
-            return self.plan.pop()
+            if self.plan:
+                return self.plan.pop()
+            else:
+                return None
 
         # this action failed somehow
         elif current_action.state == ACTIONSTATE_FAILED:

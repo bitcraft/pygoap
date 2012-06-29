@@ -48,22 +48,37 @@ class move(ActionBuilder):
         return a list of action that this caller is able to move with
         """
 
-        if not SimpleGoal(is_tired=True).test(bb):
-            pos = caller.environment.can_move_from(caller, dist=30)
-            return [ self.build_action(caller, p) for p in pos ]
-        else:
+        if SimpleGoal(is_tired=True).test(bb):
             return []
+        else:
+            pos = caller.environment.can_move_from(caller, dist=100)
+            return [ self.build_action(caller, p) for p in pos ]
+
 
     def build_action(self, caller, pos):
         a = move_action(caller)
+        a.setEndpoint(pos[1])
         a.effects.append(PositionGoal(target=caller, position=pos))
         a.effects.append(SimpleGoal(is_tired=True))
         return a
 
 
-
 class move_action(CallableAction):
-    pass
+    def update(self, time):
+        super(move_action, self).update(time)
+        if self.caller.position[1] == self.endpoint:
+            self.finish()
+        else:
+            env = self.caller.environment
+            path = env.pathfind(self.caller.position[1], self.endpoint)
+            path.pop() # this will always the the starting position
+            env.move(self.caller, (env, path.pop()))
+
+    def setStartpoint(self, pos):
+        self.startpoint = pos
+ 
+    def setEndpoint(self, pos):
+        self.endpoint = pos
 
 exported_actions.append(move)
 

@@ -1,5 +1,6 @@
 from blackboard import Blackboard
 from heapq import heappop, heappush, heappushpop
+from actionstates import *
 import sys
 
 
@@ -159,13 +160,17 @@ class InstancedAction(object):
     builder = None
 
     def __init__(self):
-        self.state = None
+        self.state = ACTIONSTATE_FINISHED 
+
+    def update(self, time):
+        pass
 
     def touch(self, bb):
         if DEBUG: print "[debug] action {} has no touch method".format(self)
 
     def test(self, bb):
         if DEBUG: print "[debug] action {} has no test method".format(self)
+        return 1.0
 
     def __repr__(self):
         return self.__class__.__name__

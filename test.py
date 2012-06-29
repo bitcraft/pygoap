@@ -88,7 +88,7 @@ def run_once():
             formosa.add_thing(rum)
 
         elif time == 5:
-            formosa.move(rum, pirate.position)
+            #formosa.move(rum, pirate.position)
             pass
 
         elif time == 6:
@@ -134,7 +134,7 @@ def run_once():
         stdout.write("\n\n");
         time += 1
 
-        if time == 8: run = False
+        if time == 32: run = False
 
 
 if __name__ == "__main__":

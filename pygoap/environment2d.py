@@ -11,6 +11,7 @@ is up to you to make it useful.
 
 from pygoap.agent import GoapAgent
 from environment import Environment, Precept
+from pathfinding.astar import search, Node
 import random, math
 
 
@@ -45,6 +46,9 @@ class Pathfinding2D(object):
                 
     def calc_h(self, position1, position2):
         return distance(position1, position2)
+
+    def factory(self, position):
+        return Node(position)
 
 
 class XYEnvironment(Environment, Pathfinding2D):
@@ -135,3 +139,10 @@ class XYEnvironment(Environment, Pathfinding2D):
                     pos.append((self, (xx, yy)))
 
         return pos
+
+    def pathfind(self, start, finish):
+        """
+        return a path from start to finish
+        """
+
+        return search(start, finish, self.factory) 

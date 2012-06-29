@@ -17,6 +17,7 @@ from actionstates import *
 from itertools import chain, repeat, product, izip
 
 
+DEBUG = 0
 
 class ObjectBase(object):
     """
@@ -111,7 +112,7 @@ class Environment(object):
         thing.position = position or self.default_position(thing)
         self.things.append(thing)
 
-        print "[env] adding {}".format(thing)
+        if DEBUG: print "[env] adding {}".format(thing)
 
         # add the agent
         if isinstance(thing, GoapAgent):
@@ -144,13 +145,13 @@ class Environment(object):
         p = Precept(sense="time", time=self.time) 
         [ a.handle_precept(p) for a in self.agents ]
 
+        # get all the running actions for the agents
+        self.action_que = [ a.running_actions() for a in self.agents ]
+
         # update all the actions that may be running
         precepts = [ a.update(time_passed) for a in self.action_que ]
         precepts = [ p for p in precepts if not p == None ]
-
-        # get all the running actions for the agents
-        self.action_que = chain([ a.running_actions() for a in self.agents ])
-       
+ 
         # start any actions that are not started
         [ action.start() for action in self.action_que 
             if action.state == ACTIONSTATE_NOT_STARTED ]
