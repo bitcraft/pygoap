@@ -9,7 +9,16 @@ This library is not complete, but is working as-is.  The demo gives you a simple
 
 
 
-Please check out the source for hints on how the library works.  this is under constant rewrite, and i only work on it occasionally.  so needless to say: not stable.
+I've build AI Agents around the concept of Actions and ActionBuilders.
+
+Actions can be subclassed from a few different action types.
+ActionBuilders will search a blackboard and return a list of actions that can be performed.
+
+
+
+If you are unfamiliar with GOAP, I invite you to do some research online, it may help you to understand this module.
+
+
 
 you can watch it work by running "test.py".
 
