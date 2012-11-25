@@ -81,20 +81,14 @@ def run_once():
         if time == 1:
             pirate = Human("Male", "jack")
             load_commands(pirate, os.path.join("npc", "pirate"))
-            #pirate.add_goal(SimpleGoal(is_idle=True))
             pirate.add_goal(SimpleGoal(is_drunk=True))
             formosa.add(pirate)
             formosa.set_position(pirate, (formosa, (0,0)))
 
         elif time == 3:
             rum = ObjectBase("rum")
-            pirate.add_goal(HasItemGoal(rum))
             formosa.add(rum)
             formosa.set_position(rum, (formosa, (0,2)))
-
-        elif time == 5:
-            #formosa.move(rum, pirate.position)
-            pass
 
         elif time == 6:
             wench = Human("Female", "wench")

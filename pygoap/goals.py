@@ -25,8 +25,8 @@ debug = logging.debug
 class GoalBase(object):
     """
     Goals:
-        can be satisfied.
-        can be valid
+        can be tested
+        can be relevant
 
     Goals, ActionPrereqs and ActionEffects are now that same class.  They share
     so much functionality that they have been combined into one class.
@@ -42,11 +42,9 @@ class GoalBase(object):
         except IndexError:
             self.condition = None
 
-        self.value = 1.0
+        self.weight = 1.0
         self.args = args
         self.kw = kwargs
-
-        self.self_test()
 
     def touch(self, memory):
         pass
@@ -61,7 +59,8 @@ class GoalBase(object):
         as a general rule, the return value here should never equal
         what is returned from test()
         """
-        return self.value if not self.test(memory) else 0.0
+        score = 1 - self.test(memory)
+        return self.weight * score
 
     def self_test(self):
         """
@@ -153,7 +152,11 @@ class EvalGoal(GoalBase):
         d = {}
         d['__builtins__'] = None
 
-        memory.post(Tag(kw=do_it(self.args[0], d)))
+        for k, v in d.items():
+            if k == '__builtins__':
+                continue
+
+            memory.add(DatumPrecept(k, v))
 
         return True
 
@@ -208,6 +211,7 @@ class PositionGoal(GoalBase):
             return 1.0
 
         else:
+
             d = distance(position, target_position)
             if d > self.dist:
                 return (float(self.dist / d)) * float(self.dist)

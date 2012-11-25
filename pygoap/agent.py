@@ -1,7 +1,7 @@
 from environment import ObjectBase
 from planning import plan
 from actions import ActionContext
-from blackboard import Blackboard, MemoryManager
+from blackboard import MemoryManager
 from actionstates import *
 from precepts import *
 import logging
@@ -88,30 +88,26 @@ class GoapAgent(ObjectBase):
         """
 
         # get the relevancy of each goal according to the state of the agent
-        s = [ (g.get_relevancy(self.memory), g) for g in self.goals ]
-        s = [ g for g in s if g[0] > 0 ]
+        s = ( (g.get_relevancy(self.memory), g) for g in self.goals )
+        s = [ g for g in s if g[0] > 0.0 ]
         s.sort(reverse=True)
 
         debug("[agent] goals %s", s)
 
-        # starting for the most relevant goal, attempt to make a plan      
+        # starting for the most relevant goal, attempt to make a plan
+        plan = []      
         for score, goal in s:
-            ok, plan = self.planner(
-                self,
-                self.actions,
-                self.current_action,
-                self.memory,
-                goal)
+            tentative_plan = self.planner(self, self.actions,
+                self.current_action, self.memory, goal)
 
-            if ok:
-                pretty = list(reversed(plan[:]))
+            if tentative_plan:
+                pretty = list(reversed(tentative_plan[:]))
                 debug("[agent] %s has planned to %s", self, goal)
                 debug("[agent] %s has plan %s", self, pretty)
-                return plan
-            else:
-                debug("[agent] %s cannot %s", self, goal)
+                plan = tentative_plan
+                break
 
-        return []
+        return plan
 
     @property
     def current_action(self):

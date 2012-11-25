@@ -16,9 +16,9 @@ def get_position(entity, memory):
     """
     Return the position of [entity] according to memory.
     """
-    for precept in memory.of_class(PositionPrecept):
-        if precept.entity is entity:
-            return precept.position
+    for pct in memory.of_class(PositionPrecept):
+        if pct.entity is entity:
+            return pct.position
 
 
 class MoveAction(ActionContext):
@@ -46,7 +46,7 @@ class PickupAction(CalledOnceContext):
     pass
 
 
-class DrinkRunAction(ActionContext):
+class DrinkRumAction(ActionContext):
     def start(self):
         self.caller.drunkness = 1
         super(drink_rum, self).start()
@@ -77,15 +77,15 @@ class move_to_entity(ActionBuilder):
     def get_actions(self, caller, memory):
         visited = []
 
-        for precept in memory.of_class(PositionPrecept):
-            if precept.entity is caller or precept.position in visited:
+        for pct in memory.of_class(PositionPrecept):
+            if pct.entity is caller or pct.position in visited:
                 continue
 
-            visited.append(precept.position)
+            visited.append(pct.position)
 
             action = MoveAction(caller)
-            action.setEndpoint(precept.position[1])
-            action.effects.append(PositionGoal(caller, precept.position))
+            action.setEndpoint(pct.position[1])
+            action.effects.append(PositionGoal(caller, pct.position))
             yield action
 
 exported_actions.append(move_to_entity)
@@ -98,14 +98,13 @@ class pickup(ActionBuilder):
         """
         here = get_position(caller, memory) 
 
-        for precept in memory.of_class(PositionPrecept):
-            if here == precept.position and precept.entity is not caller:
+        for pct in memory.of_class(PositionPrecept):
+            if here == pct.position and pct.entity is not caller:
                 action = PickupAction(caller)
-                action.effects.append(HasItemGoal(precept.entity))
+                action.effects.append(HasItemGoal(pct.entity))
                 yield action 
 
 exported_actions.append(pickup)
-
 
 
 class drink_rum(ActionBuilder):
@@ -113,27 +112,14 @@ class drink_rum(ActionBuilder):
     drink rum that is in caller's inventory
     """
 
-    def make_action(self, caller, tag, memory):
-        a = drink_rum_action(caller)
-        a.effects.append(SimpleGoal(is_drunk=True))
-        a.effects.append(EvalGoal("charisma = charisma + 10"))
-
-        return a
-
     def get_actions(self, caller, memory):
-        """
-        return list of actions that will drink rum from player's inv
-        """
+        for pct in memory.of_class(PositionPrecept):
+            if pct.position[0] == 'self' and pct.entity.name == "rum":
+                action = DrinkRumAction(caller)
+                action.effects.append(SimpleGoal(is_drunk=True))
+                action.effects.append(EvalGoal("charisma = charisma + 10"))
+                yield action
 
-        a = []
-        for precept in memory.of_class(PositionPrecept):
-            if precept.position[0] == caller:
-                if DEBUG: print "[drink rum] 1 {}".format(tag)
-                if tag['obj'].name=="rum":
-                    if DEBUG: print "[drink rum] 2 {}".format(tag)
-                    a.append(self.make_action(caller, tag, memory))
-
-        return a
 
 exported_actions.append(drink_rum)
 

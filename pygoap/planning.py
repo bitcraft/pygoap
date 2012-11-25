@@ -154,9 +154,9 @@ def plan(caller, actions, start_action, start_memory, goal):
             keyNode = keyNode.parent
             path0.append(keyNode.action)
 
-        return True, path0
+        return path0
 
     else:
-        return False, []
+        return []
 
 
