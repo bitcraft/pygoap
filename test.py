@@ -9,7 +9,7 @@ he should attempt to get drunk and sleep with her...
 ...any way he knows how.
 """
 
-__version__ = ".009"
+__version__ = ".010"
 
 from pygoap.agent import GoapAgent
 from pygoap.environment import ObjectBase
@@ -19,6 +19,10 @@ import os, imp, sys
 
 from pygame.locals import *
 
+import logging
+logging.basicConfig(level=00)
+
+
 
 stdout = sys.stdout
 global_actions = {}
@@ -27,9 +31,8 @@ def load_commands(agent, path):
     mod = imp.load_source("actions", os.path.join(path, "actions.py"))
     global_actions = dict([ (c.__name__, c()) for c in mod.exported_actions ])
 
-    #for k, v in global_actions.items():
-    #    print "testing action {}..."
-    #    v.self_test()
+    for k, v in global_actions.items():
+        print "testing action {}...".format(v)
 
     [ agent.add_action(a) for a in global_actions.values() ]
 
@@ -80,12 +83,14 @@ def run_once():
             load_commands(pirate, os.path.join("npc", "pirate"))
             #pirate.add_goal(SimpleGoal(is_idle=True))
             pirate.add_goal(SimpleGoal(is_drunk=True))
-            formosa.add_thing(pirate)
+            formosa.add(pirate)
+            formosa.set_position(pirate, (formosa, (0,0)))
 
         elif time == 3:
             rum = ObjectBase("rum")
-            pirate.add_goal(HasItemGoal(pirate, rum))
-            formosa.add_thing(rum)
+            pirate.add_goal(HasItemGoal(rum))
+            formosa.add(rum)
+            formosa.set_position(rum, (formosa, (0,2)))
 
         elif time == 5:
             #formosa.move(rum, pirate.position)
@@ -93,7 +98,7 @@ def run_once():
 
         elif time == 6:
             wench = Human("Female", "wench")
-            formosa.add_thing(wench)
+            formosa.add(wench)
 
         screen_buf.fill((0,128,255))
         formosa.render(screen_buf)
@@ -149,4 +154,5 @@ if __name__ == "__main__":
 
     p = pstats.Stats("pirate.prof")
     p.strip_dirs()
-    p.sort_stats('time').print_stats(10)
+    p.sort_stats('time').print_stats(20, "^((?!pygame).)*$")
+    p.sort_stats('time').print_stats(20)

@@ -6,67 +6,19 @@ This implementation uses sqlite3 as a backend for storing memories.
 The MemManager class is not used.
 """
 
-from collections import defaultdict
-
-DEBUG = 0
 
 
-class Tag(object):
+class MemoryManager(set):
     """
-    simple object for storing data on a blackboard
+    a memory manager's purpose is to store and manage stored precepts.
     """
 
-    def __init__(self, **kwargs):
-        if 'kw' in kwargs.keys():
-            del kwargs['kw']
-            self.kw = kwargs
-        else:
-            self.kw = kwargs
+    def of_class(self, klass):
+        for i in self:
+            if isinstance(i, klass):
+                yield i
 
-    def __repr__(self):
-        return "<Tag: {}>".format(self.kw)
-
-
-class MemoryManager(object):
-    """
-    a memory manager's purpose is to store precepts.
-
-    memories here should be able to be recalled quickly.  like a blackboard,
-    this class is designed to have many users (not thread safe now).
-    """
-
-    def __init__(self, owner=None):
-        self.owner = owner
-
-    def add(self, precept, confidence=1.0):
-        """
-        Precepts may have a confidence leve associated with them as a metric
-        for sorting out precepts that may not be reliable.
-
-        This mechanism primarly exists for users of a shared blackboard where
-        they may post conflicting information.
-        """
-
-        Session = sessionmaker(bind=engine)
-        session = Session()
-
-        m = Memory(None, "")
-         
-        try:
-            session.add(m)
-            session.commit()
-        except:
-            if DEBUG: print "error:", m
-            session.rollback()
-            raise
-
-    def search(self, tag, owner=None):
-        alldata = session.query(Memory).all()
-        for somedata in alldata:
-            if DEBUG: print somedata
-
-
-class Blackboard(object):
+class Blackboard(dict):
     """
     a blackboard is an abstract memory device.
 
@@ -91,60 +43,4 @@ class Blackboard(object):
     shared, so that in the future, it will be easier to simulate agents with
     shared knowledge and subtle communication.
     """
-
-    def __init__(self):
-        self.memory = []
-
-    def __eq__(self, other):
-        if isinstance(other, Blackboard):
-            return self.memory == other.memory
-        else:
-            return False
-
-    def post(self, tag):
-        if not isinstance(tag, Tag):
-            m="Only instances of tag objects can be stored on a blackboard"
-            raise ValueError, m
-       
-        d = tag.kw.copy()
-        self.memory.append(d)
-        
-    def read(self, *args, **kwargs):
-        """
-        return any data that match the keywords in the function call
-        returns a list of dictionaries
-        """
-
-        if (args == ()) and (kwargs == {}):
-            return self.memory
-
-        tags = []
-        r = []
-
-        if DEBUG: print "[bb] args {}".format(args)
-        if DEBUG: print "[bb] kwargs {}".format(kwargs)
-
-        def check_args(tag):
-            if args == ():
-                return True
-            else:
-                keys = tag.keys()
-                return all([ a in keys for a in args ])
-                    
-        def check_kwargs(tag):
-            if kwargs == {}:
-                return True
-            else:
-                raise ValueError, "Blackboards do not support search...yet"
-
-        for tag in self.memory:
-            if DEBUG: print "[bb] chk args {} {}".format(tag, check_args(tag))
-            if DEBUG: print "[bb] chk kw {} {}".format(tag, check_kwargs(tag))
-            if check_args(tag) and check_kwargs(tag):
-                r.append(tag)
-
-        #r.reverse()
-        return r
-
-    def update(self, other):
-        self.memory.extend(other.memory)
+    pass

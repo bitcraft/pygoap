@@ -13,41 +13,22 @@ This concept comes from 'The Sims', where each agent doesn't need to know how
 to use every object, but can instead query the object for actions to do with it.
 """
 
+from precepts import *
 from actionstates import *
-from itertools import chain, repeat, product, izip
+from itertools import chain
+import logging
+
+debug = logging.debug
 
 
-DEBUG = 0
 
 class ObjectBase(object):
     """
     class for objects that agents can interact with
     """
 
-    def __init__(self, name):
+    def __init__(self, name='noname'):
         self.name = name
-        self.inventory = []
-
-    def handle_precept(self, precept):
-        pass
-
-    def add(self, other, origin):
-        """
-        add something to this object's inventory
-        the object must have an origin.
-        the original position of the object will lose this object:
-            dont remove it manually!
-        """
-
-        origin.inventory.remove(other)
-        self.inventory.append(other)
-
-    def remove(self, obj):
-        """
-        remove something from this object's inventory
-        """
-
-        self.inventory.remove(other)
 
     def get_actions(self, other):
         """
@@ -59,39 +40,31 @@ class ObjectBase(object):
         return "<Object: {}>".format(self.name)
 
 
-class Precept(object):
-    """
-    This is the building block class for how an agent interacts with the
-    simulated environment.
-    """
-
-    def __init__(self, *arg, **kwargs):
-        self.__dict__.update(kwargs)
-
-    def __repr__(self):
-        return "<Precept: %s>" % self.__dict__
-
-
 class Environment(object):
     """Abstract class representing an Environment.  'Real' Environment classes
     inherit from this.
     """
 
-    def __init__(self, things=[], agents=[], time=0):
-        self.time   = time
-        self.agents = []
-        self.things = []
+    def __init__(self, entities=[], agents=[], time=0):
+        self.time = time
+        self._agents = []
+        self._entities = []
+        self._positions = []
 
-        [ self.add_thing(i) for i in things ]
-        [ self.add_thing(i) for i in agents ]
+        [ self.add(i) for i in entities ]
+        [ self.add(i) for i in agents ]
 
         self.action_que = []
 
-    def default_position(self, object):
-        """
-        Default position to place a new object with unspecified position.
-        """
+    @property
+    def agents(self):
+        return iter(self._agents)
 
+    @property
+    def entities(self):
+        return chain(self._entities, self._agents)
+
+    def get_position(self, entity):
         raise NotImplementedError
 
     def run(self, steps=1000):
@@ -101,31 +74,26 @@ class Environment(object):
 
         [ self.update(1) for step in xrange(steps) ]
 
-    def add_thing(self, thing, position=None):
+    def add(self, entity, position=None):
         """
-        Add an object to the environment, setting its position. Also keep
-        track of objects that are agents.  Shouldn't need to override this.
+        Add an entity to the environment
         """
 
         from agent import GoapAgent
 
-        thing.position = position or self.default_position(thing)
-        self.things.append(thing)
 
-        if DEBUG: print "[env] adding {}".format(thing)
+        debug("[env] adding %s", entity)
 
         # add the agent
-        if isinstance(thing, GoapAgent):
-            self.agents.append(thing)
-            thing.performance = 0
-            thing.environment = self
+        if isinstance(entity, GoapAgent):
+            self._agents.append(entity)
+            entity.environment = self
+            self._positions[entity] = (None, (0, 0))
 
-        # for simplicity, agents always know where they are
-        i = Precept(sense="position", thing=thing, position=thing.position)
-        thing.handle_precept(i)
-
-        # should update vision for all interested agents (correctly, that is)
-        [ self.look(a) for a in self.agents if a != thing ]
+            # clever hack to let the planner know who the memory belongs to
+            entity.process(DatumPrecept('self', entity))
+        else:
+            self._entities.append(entity)
 
     def update(self, time_passed):
         """
@@ -140,10 +108,11 @@ class Environment(object):
         # update time in the simulation
         self.time += time_passed
 
-        # let all the agents know that time has passed
-        # bypass the modeler for simplicity
-        p = Precept(sense="time", time=self.time) 
-        [ a.handle_precept(p) for a in self.agents ]
+        # let all the agents know that time has passed and bypass the modeler
+        p = TimePrecept(self.time) 
+        [ a.process(p) for a in self.agents ]
+
+        [ self.look(a) for a in self.agents ]
 
         # get all the running actions for the agents
         self.action_que = [ a.running_actions() for a in self.agents ]
@@ -153,33 +122,26 @@ class Environment(object):
         precepts = [ p for p in precepts if not p == None ]
  
         # start any actions that are not started
-        [ action.start() for action in self.action_que 
+        [ action.enter() for action in self.action_que 
             if action.state == ACTIONSTATE_NOT_STARTED ]
 
     def broadcast_precepts(self, precepts, agents=None):
         """
         for efficiency, please use this for sending a list of precepts
         """
-        
         if agents == None:
             agents = self.agents
 
         model = self.model_precept
 
         for p in precepts:
-            [ a.handle_precept(model(p, a)) for a in agents ]
+            [ a.process(model(p, a)) for a in agents ]
 
     def model_precept(self, precept, other):
         """
         override this to model the way that precept objects move in the
         simulation.  by default, all precept objects will be distributed
         indiscriminately to all agents.
-
-        while this behavior may be desirable for some types of precepts,
-        it doesn't make sense in many.
-
-        the two big things to model here would be vision and sound.
         """
-
         return precept
 

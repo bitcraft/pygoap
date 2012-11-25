@@ -1,21 +1,20 @@
 from environment import ObjectBase
-from planning import plan, InstancedAction
-from blackboard import Blackboard, MemoryManager, Tag
+from planning import plan
+from actions import ActionContext
+from blackboard import Blackboard, MemoryManager
 from actionstates import *
+from precepts import *
+import logging
+
+debug = logging.debug
 
 
-DEBUG = 0
 
-NullAction = InstancedAction()
-
+NullAction = ActionContext(None)
 
 # required to reduce memory usage
 def time_filter(precept):
-    if precept.sense == "time":
-        return None
-    else:
-        return precept
-
+    return None if isinstance(precept, TimePrecept) else precept
 
 class GoapAgent(ObjectBase):
     """
@@ -28,12 +27,11 @@ class GoapAgent(ObjectBase):
     # this will set this class to listen for this type of precept
     # not implemented yet
     interested = []
+    idle_timeout = 30
 
     def __init__(self):
-        self.idle_timeout = 30
-        self.bb           = Blackboard()
-        #self.mem_manager  = MemoryManager(self)
-        self.planner      = plan
+        self.memory = MemoryManager()
+        self.planner = plan
 
         self.current_goal   = None
 
@@ -46,20 +44,6 @@ class GoapAgent(ObjectBase):
         # this special filter will prevent time precepts from being stored
         self.filters.append(time_filter)
 
-    def add(self, other, origin):
-        # we simulate the agent's knowledge of its inventory with precepts
-        p = Precept(sense="inventory")
-
-        # do the actual add
-        super(GoapAgent, self).add(other, origin)
-        
-    def remove(self, obj):
-        # we simulate the agent's knowledge of its inventory with precepts
-        p = Precept(sense="inventory")
-
-        # do the actual remove
-        super(GoapAgent, self).remove(other, origin)
-        
     def add_goal(self, goal):
         self.goals.append(goal)
 
@@ -80,30 +64,21 @@ class GoapAgent(ObjectBase):
 
         for f in self.filters:
             precept = f(precept)
-            if precept == None:
+            if precept is None:
                 break
 
         return precept
 
-    def handle_precept(self, pct):
+    def process(self, precept):
         """
         used by the environment to feed the agent precepts.
         agents can respond by sending back an action to take.
         """
+        precept = self.filter_precept(precept)
 
-        # give our filters a chance to change the precept
-        pct = self.filter_precept(pct)
-
-        # our filters may have caused us to ignore the precept
-        if pct == None: return None
-       
-        if DEBUG: print "[agent] {} recv'd pct {}".format(self, pct)
-
-        # this line has been added for debugging purposes
-        self.plan = []
- 
-        if pct.sense == "position":
-            self.bb.post(Tag(position=pct.position, obj=pct.thing))
+        if precept:
+            debug("[agent] %s recv'd precept %s", self, precept)
+            self.memory.add(precept)
 
         return self.next_action()
 
@@ -113,33 +88,32 @@ class GoapAgent(ObjectBase):
         """
 
         # get the relevancy of each goal according to the state of the agent
-        s = [ (g.get_relevancy(self.bb), g) for g in self.goals ]
+        s = [ (g.get_relevancy(self.memory), g) for g in self.goals ]
         s = [ g for g in s if g[0] > 0 ]
         s.sort(reverse=True)
 
-        if DEBUG: print "[agent] goals {}".format(s)
+        debug("[agent] goals %s", s)
 
         # starting for the most relevant goal, attempt to make a plan      
         for score, goal in s:
             ok, plan = self.planner(
                 self,
                 self.actions,
-                self.current_action(),
-                self.bb,
+                self.current_action,
+                self.memory,
                 goal)
 
-            if ok and DEBUG:
-                print "[agent] {} has planned to {}".format(self, goal)
+            if ok:
                 pretty = list(reversed(plan[:]))
-                print "[agent] {} has plan {}".format(self, pretty)
+                debug("[agent] %s has planned to %s", self, goal)
+                debug("[agent] %s has plan %s", self, pretty)
                 return plan
-            elif DEBUG:
-                print "[agent] {} cannot {}".format(self, goal)
-            elif ok:
-                return plan
+            else:
+                debug("[agent] %s cannot %s", self, goal)
 
         return []
 
+    @property
     def current_action(self):
         try:
             return self.plan[-1]
@@ -147,8 +121,7 @@ class GoapAgent(ObjectBase):
             return NullAction
 
     def running_actions(self):
-        action = self.current_action()
-        return action
+        return self.current_action
 
     def next_action(self):
         """
@@ -158,21 +131,16 @@ class GoapAgent(ObjectBase):
         if self.plan == []:
             self.plan = self.replan()
 
-        current_action = self.current_action()
-
         # this action is done, so return the next one
-        if current_action.state == ACTIONSTATE_FINISHED:
-            if self.plan:
-                return self.plan.pop()
-            else:
-                return None
+        if self.current_action.state == ACTIONSTATE_FINISHED:
+            return self.plan.pop() if self.plan else None
 
         # this action failed somehow
-        elif current_action.state == ACTIONSTATE_FAILED:
+        elif self.current_action.state == ACTIONSTATE_FAILED:
             raise Exception, "action failed, don't know what to do now!"
 
         # our action is still running, just run that
-        elif current_action.state == ACTIONSTATE_RUNNING:
+        elif self.current_action.state == ACTIONSTATE_RUNNING:
             return current_action
 
 

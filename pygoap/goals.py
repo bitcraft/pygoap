@@ -7,40 +7,86 @@ plan for the agent to follw that will (possibly) satisfy the chosen goal.
 
 See the modules effects.py and goals.py to see how these are used.
 
-The Goal class has a lot of uses in the engine, see the pirate's actions for
-an idea of what they are used for. Not all of the goals here are used/tested.
-
 test() should return a float from 0-1 on how successful the action would be
-if carried out with the given state of the bb.
+if carried out with the given state of the memory.
 
-touch() should modify a bb in some meaningful way as if the action was
+touch() should modify a memory in some meaningful way as if the action was
 finished successfully.
 """
 
-from planning import GoalBase
-from blackboard import Tag
-import sys
+from blackboard import MemoryManager
+from precepts import *
+import sys, logging
+
+debug = logging.debug
 
 
-DEBUG = 0
+
+class GoalBase(object):
+    """
+    Goals:
+        can be satisfied.
+        can be valid
+
+    Goals, ActionPrereqs and ActionEffects are now that same class.  They share
+    so much functionality that they have been combined into one class.
+
+    The only difference is how they are used.  If a goal is used by the planner
+    then that will be the final point of the plan.  if it is used in
+    conjunction with an action, then it will function as a prereq.
+    """
+
+    def __init__(self, *args, **kwargs):
+        try:
+            self.condition = args[0]
+        except IndexError:
+            self.condition = None
+
+        self.value = 1.0
+        self.args = args
+        self.kw = kwargs
+
+        self.self_test()
+
+    def touch(self, memory):
+        pass
+
+    def test(self, memory):
+        pass
+
+    def get_relevancy(self, memory):
+        """
+        will return the "relevancy" value for this goal/prereq.
+
+        as a general rule, the return value here should never equal
+        what is returned from test()
+        """
+        return self.value if not self.test(memory) else 0.0
+
+    def self_test(self):
+        """
+        make sure the goal is sane
+        """
+        memory = MemoryManager()
+        self.touch(memory)
+        assert self.test(memory) == 1.0
+
+    def __repr__(self):
+        return "<{}>".format(self.__class__.__name__)
+
 
 class SimpleGoal(GoalBase):
-    """
-    Goal that uses a dict to match precepts stored on a bb.
-    """
+    def test(self, memory):
+        total = 0.0
+        for precept in memory:
+            for item in self.kw.items():
+                if precept == item:
+                    total += 1
+        return total / len(self.kw)
 
-    def test(self, bb):
-        #f = [ k for (k, v) in self.kw.items() if v == False]
-
-        for tag in bb.read():
-
-            if tag == self.kw:
-                return 1.0
-
-        return 0.0
-
-    def touch(self, bb):
-        bb.post(Tag(**self.kw))
+    def touch(self, memory):
+        for item in self.kw.items():
+            memory.add(DatumPrecept(*item))
 
     def __repr__(self):
         return "<{}=\"{}\">".format(self.__class__.__name__, self.kw)
@@ -53,8 +99,7 @@ class EvalGoal(GoalBase):
     feel free to contact me if you have a better way
     """
 
-    def test(self, bb):
-
+    def test(self, memory):
         condition = self.args[0]
 
         # this only works for simple expressions
@@ -71,8 +116,8 @@ class EvalGoal(GoalBase):
                 if i > 5: break
 
         try:
-            side0 = float(eval(" ".join(expr[:index]), bb))
-            side1 = float(eval(" ".join(expr[index+1:]), bb))
+            side0 = float(eval(" ".join(expr[:index]), memory))
+            side1 = float(eval(" ".join(expr[index+1:]), memory))
         except NameError:
             return 0.0
 
@@ -94,13 +139,11 @@ class EvalGoal(GoalBase):
 
         return v
 
-    def touch(self, bb):
+    def touch(self, memory):
         def do_it(expr, d):
-
             try:
                 exec expr in d
             except NameError as detail:
-                # get name of missing variable
                 name = detail[0].split()[1].strip('\'')
                 d[name] = 0
                 do_it(expr, d)
@@ -109,10 +152,8 @@ class EvalGoal(GoalBase):
 
         d = {}
         d['__builtins__'] = None
-        d = do_it(self.args[0], d)
 
-        # the bb was modified
-        bb.post(Tag(kw=d))
+        memory.post(Tag(kw=do_it(self.args[0], d)))
 
         return True
 
@@ -122,12 +163,8 @@ class AlwaysValidGoal(GoalBase):
     Will always be valid.
     """
 
-    def test(self, bb):
+    def test(self, memory):
         return 1.0
-
-    def touch(self, bb, tag):
-        pass
-
 
 
 class NeverValidGoal(GoalBase):
@@ -135,12 +172,8 @@ class NeverValidGoal(GoalBase):
     Will never be valid.
     """
 
-    def test(self, bb):
+    def test(self, memory):
         return 0.0
-
-    def touch(self, bb, tag):
-        pass
-
 
 
 class PositionGoal(GoalBase):
@@ -148,7 +181,7 @@ class PositionGoal(GoalBase):
     This validator is for finding the position of objects.
     """
 
-    def test(self, bb):
+    def test(self, memory):
         """
         search memory for last known position of the target if target is not
         in agent's memory return 0.0.
@@ -160,33 +193,21 @@ class PositionGoal(GoalBase):
         return 1.0 if the target is reachable
         """
 
-        target = None
+        target = self.args[0]
         target_position = None
-        tags = bb.read("position")
 
-        if DEBUG: print "[PositionGoal] testing {}".format(self.kw)
+        debug("[PositionGoal] testing %s", self.args)
 
-        for tag in tags:
-            target = tag['obj']
-            for k, v in self.kw.items():
-                try:
-                    value = getattr(target, k)
-                except AttributeError:
-                    continue
-
-                if not v == value:
-                    continue
-
-                target_position = tag['position']
+        # find where the target is, according to the memory
+        for precept in memory.of_class(PositionPrecept):
+            if precept.entity is target:
+                target_position = precept.position
                 break
-            else:
-                continue
-            break
 
-        if target_position:
-            if DEBUG: print "[PositionGoal] {} {}".format(self.kw['owner'], target)
+        if target_position == self.args[1]:
             return 1.0
 
+        else:
             d = distance(position, target_position)
             if d > self.dist:
                 return (float(self.dist / d)) * float(self.dist)
@@ -195,19 +216,13 @@ class PositionGoal(GoalBase):
             else:
                 return 0.0
 
+    def touch(self, memory):
+        memory.add(PositionPrecept(self.args[0], self.args[1]))
 
-    def touch(self, bb):
-
-        # this needs to be the same as what handle_precept() of an agent
-        # would post if it had recv'd this from the environment
-        tag = Tag(obj=self.kw['target'],
-                position=self.kw['position'])
-
-        bb.post(tag)
 
 class HasItemGoal(GoalBase):
     """
-    returns true if item is in inventory (according to bb)
+    returns true if item is in inventory (according to memory)
 
     when creating instance, 'owner' must be passed as a keyword.
     its value can be any game object that is capable of holding an object
@@ -215,40 +230,16 @@ class HasItemGoal(GoalBase):
     NOTE: testing can be true to many different objects,
           but touching requires a specific object to function
 
-    any other keyword will be evaluated against tags in the bb passed.
+    any other keyword will be evaluated against precepts in the memory passed.
     """
 
-    def __init__(self, owner, target=None, **kwargs):
-        super(HasItemGoal, self).__init__(self)
-
-        self.owner = owner
-        self.target = None
-
-        if target:
-            self.target = target
-        else:
-            try:
-                self.target = kwargs['target']
-            except KeyError:
-                pass
-
-        if (self.target == None) and (kwargs == {}):
-            raise Exception, "HasItemGoal needs more information"
-            
-
-    def test(self, bb):
-        for tag in bb.read("position"):
-            if (tag['position'][0] == self.owner) and \
-            tag['obj'] == self.target:
+    def test(self, memory):
+        for precept in memory.of_class(PositionPrecept):
+            if (precept.position[0] == 'self' and
+                precept.entity == self.args[0]):
                 return 1.0
         
         return 0.0
 
-    def touch(self, bb):
-        # this has to be the same tag that the agent would add to its bb
-        tag = Tag(obj=self.target, position=(self.owner, 0))
-
-        if DEBUG: print "[HasItem] {} touch {}".format(self, tag)
-
-        bb.post(Tag(obj=self.target, position=(self.owner, 0)))
-
+    def touch(self, memory):
+        memory.add(PositionPrecept(self.args[0], ('self', 0)))

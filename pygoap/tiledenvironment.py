@@ -27,8 +27,8 @@ class TiledEnvironment(XYEnvironment):
                     if not tile == 0:
                         surface.blit(tile, (xx, yy))
 
-        for t in self.things:
-            x, y = t.position[1]
+        for t in self.entities:
+            env, (x, y) = self.get_position(t)
             x *= self.tiledmap.tilewidth
             y *= self.tiledmap.tileheight
 

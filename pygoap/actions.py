@@ -7,187 +7,154 @@ process.  The action can emit a sound, sight, or anything else for other
 objects to consume.
 
 These classes will be known to an agent, and chosen by the planner as a means
-to satisfy the current goal.  They will be instanced and the the agent will
+to satisfy the current goal.  They will be instanced and the agent will
 execute the action in some way, one after another.
 
 Actions need to be split into ActionInstances and ActionBuilders.
 
 An ActionInstance's job is to work in a planner and to carry out actions.
 A ActionBuilder's job is to query the caller and return a list of suitable
-actions for the bb.
+actions for the memory.
 """
 
-from planning import *
 from actionstates import *
 import sys
+
 
 
 test_fail_msg = "some goal is returning None on a test, this is a bug."
 
 class ActionBuilder(object):
     """
-    ActionBuilders examine a blackboard and return a list of actions
-    that can be successfully completed at the the time.
+    ActionBuilders examine a blackboard and return a list of actions that can
+    be successfully completed at the time.
+
+    The actions that are returned will be assumed to be valid and will not be
+    tested.  Please make sure that the actions are valid.
     """
 
-    def get_actions(self, caller, bb):
+    def __call__(self, caller, memory):
+        return self.get_actions(caller, memory)
+
+    def get_actions(self, caller, memory):
+        """
+        Return a list of actions
+        """
         raise NotImplementedError
-
-    def __init__(self, **kwargs):
-        self.prereqs = []
-        self.effects = []
-        self.costs   = {}
-
-        self.__dict__.update(kwargs)
-
-        self.setup()
-
-    def setup(self):
-        """
-        add the prereqs, effects, and costs here
-        override this
-        """
-        pass
 
     def __repr__(self):
         return "<ActionBuilder: {}>".format(self.__class__.__name__)
 
 
-class CallableAction(InstancedAction):
+class ActionContext(object):
     """
-    callable action class.
-
-    subclass this class to implement the code side of actions.
-    for the most part, "start" and "update" will be the most
-    important methods to overload.
+    Context where actions take place.
     """
 
     def __init__(self, caller, **kwargs):
-        self.caller     = caller
-        self.state      = ACTIONSTATE_NOT_STARTED
-
+        self.caller  = caller
+        self.state   = ACTIONSTATE_NOT_STARTED
         self.prereqs = []
         self.effects = []
         self.costs   = {}
-
         self.__dict__.update(kwargs)
 
-    def test(self, bb=None):
+    def __enter__(self):
         """
-        make sure the action is able to be started
-        return a float from 0-1 that describes how valid this action is.
-
-        validity of an action is a measurement of how effective the action
-        will be if it is completed successfully.
-
-        if any of the prereqs are not partially valid ( >0 ) then will
-        return 0
-
-        this value will be used in planning.
-
-        for many actions a simple 0 or 1 will work.  for actions which
-        modify numerical values, it may be useful to return a fractional
-        value.
-        """
-
-        # NOTE: may be better written with itertools
-
-        if bb == None: raise Exception
-
-        if len(self.prereqs) == 0: return 1.0
-        total = [ i.test(bb) for i in self.prereqs ]
-        print "[goal] {} test {}".format(self, total)
-        #if 0 in total: return 0
-        try:
-            return float(sum(total)) / len(self.prereqs)
-        except TypeError:
-            print zip(total, self.prereqs)
-            print test_fail_msg
-            sys.exit(1)
-
-
-    def touch(self, bb=None):
-        """
-        call when the planning phase is complete
-        """
-        if bb == None: bb = self.caller.bb
-        [ i.touch(bb) for i in self.effects ]
-
-
-    def start(self):
-        """
-        start running the action
+        Please do not override this method.  Use enter instead.
         """
         self.state = ACTIONSTATE_RUNNING
+        self.enter()
+        return self
 
-
-    def update(self, time):
+    def __exit__(self, *exc):
         """
-        actions which occur over time should implement
-        this method.
+        Please do not override this method.  Use exit instead.
+        """
+        if self.state is ACTIONSTATE_RUNNING:
+            self.state = ACTIONSTATE_FINISHED
+        if self.state is not ACTIONSTATE_ABORTED:
+            self.exit()
+        return False
 
-        if the action does not need more that one cycle, then
-        you should use the calledonceaction class
+    def enter(self):
+        """
+        This method will be called after this context becomes active
         """
         pass
 
-
-    def fail(self, reason=None):
+    def exit(self):
         """
-        maybe what we planned to do didn't work for whatever reason
+        This method will be called after this context become inactive
+        """
+        pass
+
+    def update(self, time):
+        """
+        This method will be called periodically by the environment.
+        """
+        pass
+
+    def fail(self):
+        """
+        Call this method if the context is not able to complete
         """
         self.state = ACTIONSTATE_FAILED
 
-
     def abort(self):
         """
-        stop the action without the ability to complete or continue
+        Call this method to stop this context without cleaning it up
         """
-        self.state = ACTIONSTATE_BAILED
+        self.state = ACTIONSTATE_ABORTED
 
-
-    def finish(self):
+    def test(self, memory=None):
         """
-        the planned action was completed and the result is correct
+        Determine whether or not this context is able to start (begin())
+
+        return a float from 0-1 that describes how valid this action is.
+
+        validity of an action is a measurement of how effective the action will
+        be if it is completed successfully.
+
+        if any of the prereqs are not partially valid ( >0 ) then will return 0
+
+        for many actions a simple 0 or 1 will work.  for actions which
+        modify numerical values, it may be useful to return a fractional value.
         """
-        if self.state == ACTIONSTATE_RUNNING:
-            self.state = ACTIONSTATE_FINISHED
 
+        if memory is None: raise Exception
 
-    def ok_finish(self):
+        if not self.prereqs: return 1.0
+        values = ( i.test(memory) for i in self.prereqs )
+
+        try:
+            return float(sum(values)) / len(self.prereqs)
+        except TypeError:
+            print zip(values, self.prereqs)
+            print test_fail_msg
+            sys.exit(1)
+
+    def touch(self, memory=None):
         """
-        determine if the action can finish now
-        if cannot finish now, then the action
-        should bail if it is forced to finish.
+        Call after the planning phase is complete.
         """
-        return self.state == ACTIONSTATE_FINISHED
+        if memory is None:
+            memory = self.caller.memory
+        [ i.touch(memory) for i in self.effects ]
+
+    def __repr__(self):
+        return '<Action: {}>'.format(self.__class__.__name__)
 
 
-    def pause(self):
-        """
-        stop the action from updating.  should be able to continue.
-        """
-        self.state = ACTIONSTATE_PAUSED
-
-
-class CalledOnceAction(CallableAction):
+class CalledOnceContext(ActionContext):
     """
     Is finished immediately when started.
     """
 
-    def start(self):
-        # valid might return a value less than 1
-        # this means that some of the prereqs are not
-        # completely satisfied.
-        # since we want everything to be completely
-        # satisfied, we require valid == 1.
+    def __enter__(self):
         if self.test() == 1.0:
-            CallableAction.start(self)
-            CallableAction.finish(self)
+            super(CalledOnceContext, self).enter()
+            super(CalledOnceContext, self).exit()
         else:
             self.fail()
-
-    def update(self, time):
-        pass
-
 

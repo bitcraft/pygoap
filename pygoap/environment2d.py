@@ -9,9 +9,10 @@ environment simply provides enough basic information to the agents to work.  It
 is up to you to make it useful.
 """
 
-from pygoap.agent import GoapAgent
-from environment import Environment, Precept
+from agent import GoapAgent
+from environment import Environment
 from pathfinding.astar import search, Node
+from precepts import *
 import random, math
 
 
@@ -60,8 +61,19 @@ class XYEnvironment(Environment, Pathfinding2D):
 
     def __init__(self, width=10, height=10):
         super(XYEnvironment, self).__init__()
+        self._positions = {}
         self.width = width
         self.height = height
+
+    def add(self, entity):
+        super(XYEnvironment, self).add(entity)
+        self.set_position(entity, self.default_position())
+
+    def set_position(self, entity, position):
+        self._positions[entity] = position
+
+    def get_position(self, entity):
+        return self._positions[entity]
 
     def model_vision(self, precept, origin, terminus):
         return precept
@@ -74,33 +86,23 @@ class XYEnvironment(Environment, Pathfinding2D):
         Simulate vision by sending precepts to the caller.
         """
 
-        # a more intelligent approach would limit the number of agents
-        # to logical limit, ie: ones that could possibly been seen
-        agents = self.things[:]
-        agents.remove(caller)
-
         model = self.model_precept
-        for a in agents:
-            p = Precept(sense='position', thing=a, position=a.position)
-            caller.handle_precept(model(p, caller))
 
-    def move(self, thing, pos):
-        """
-        move an object in the world
-        """
-    
-        thing.position = pos
-
-        print "[env] move {} to {}".format(thing, pos)
-
-        [ self.look(a) for a in self.agents if a != thing ]
+        for entity in self.entities:
+            caller.process(
+                model(
+                    PositionPrecept(
+                        entity, self.get_position(entity)),
+                    caller
+                )
+            )
 
     def objects_at(self, position):
         """
         Return all objects exactly at a given position.
         """
 
-        return [ obj for obj in self.things if obj.position == position ]
+        return [ obj for obj in self.entitys if obj.position == position ]
 
     def objects_near(self, position, radius):
         """
@@ -108,20 +110,14 @@ class XYEnvironment(Environment, Pathfinding2D):
         """
 
         radius2 = radius * radius
-        return [ obj for obj in self.things  
+        return [ obj for obj in self.entitys  
                 if distance2(position, obj.position) <= radius2 ]
 
-    def default_position(self, thing):
+    def default_position(self):
         loc = (random.randint(0, self.width), random.randint(0, self.height))
         return (self, loc)
 
     def model_precept(self, precept, other):
-        if precept.sense == "vision":
-            return precept
-
-        if precept.sense == "sound":
-            return precept
-
         return precept
 
     def can_move_from(self, agent, dist=100):
@@ -130,7 +126,7 @@ class XYEnvironment(Environment, Pathfinding2D):
         in if it were to move [dist] spaces or less.
         """
 
-        x, y = agent.position[1]
+        x, y = agent.environment.get_position(agent)[1]
         pos = []
 
         for xx in xrange(x - dist, x + dist):

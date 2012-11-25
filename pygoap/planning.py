@@ -1,22 +1,22 @@
-from blackboard import Blackboard
-from heapq import heappop, heappush, heappushpop
+from blackboard import MemoryManager
 from actionstates import *
+from actions import *
+
+from heapq import heappop, heappush, heappushpop
+from itertools import permutations
+import logging
 import sys
 
+debug = logging.debug
 
 
-DEBUG = 0
 
-def get_children(caller, parent, actions, dupe_parent=False):
+def get_children(caller, parent, builders, dupe_parent=False):
     """
     return every other action on this branch that has not already been used
     """
-
     def keep_node(node):
-        # verify node is ok by making sure it is not duplicated in it's branch
-
         keep = True
-
         node0 = node.parent
         while not node0.parent == None:
             if node0.parent == node:
@@ -26,20 +26,21 @@ def get_children(caller, parent, actions, dupe_parent=False):
 
         return keep
 
-    children = []
+    def get_actions2(builders, caller, parent):
+        for builder in builders:
+            for action in builder(caller, parent.memory):
+                yield PlanningNode(parent, action)
 
-    if DEBUG: print "[plan] actions: {}".format([a for a in actions])
+    def get_actions(builders, caller, parent):
+        for builder in builders:
+            for action in builder(caller, parent.memory):
+                node = PlanningNode(parent, action)
+                if keep_node(node): 
+                    yield node
 
-    for a in actions:
-        if DEBUG: print "[plan] checking {}".format(a)
-        for child in a.get_actions(caller, parent.bb):
-            node = PlanningNode(parent, child)
+    #print list(permutations(get_actions2(builders, caller, parent)))
 
-            if keep_node(node): 
-                #if DEBUG: print "[plan] got child {}".format(child)
-                children.append(node)
-                
-    return children
+    return get_actions(builders, caller, parent) 
 
 
 def calcG(node):
@@ -52,147 +53,54 @@ def calcG(node):
 
 class PlanningNode(object):
     """
-    each node has a copy of a bb (self.bb) in order to simulate a plan.
     """
 
-    def __init__(self, parent, action, bb=None):
+    def __init__(self, parent, action, memory=None):
         self.parent = parent
         self.action = action
-        self.bb = Blackboard()
-        self.delta = Blackboard()
+        self.memory = MemoryManager()
+        self.delta = MemoryManager()
         #self.cost = action.calc_cost()
         self.cost = 1
         self.g = calcG(self)
         self.h = 1
 
-        if not parent == None:
-            self.bb.update(parent.bb)
+        if parent:
+            self.memory.update(parent.memory)
 
-        elif not bb == None:
-            self.bb.update(bb)
+        elif memory:
+            self.memory.update(memory)
 
+        action.touch(self.memory)
         action.touch(self.delta)
-        self.bb.update(self.delta)
 
     def __eq__(self, other):
         if isinstance(other, PlanningNode):
-            #if DEBUG: print "[cmp] {} {}".format(self.delta.memory, other.delta.memory)
             return self.delta == other.delta
         else:
             return False
 
     def __repr__(self):
-        try:
+        if self.parent:
             return "<PlanNode: '%s', cost: %s, p: %s>" % \
-            (self.action.__name__,
+            (self.action.__class__.__name__,
                 self.cost,
                 self.parent.action.__class__.__name__)
 
-        except AttributeError:
+        else:
             return "<PlanNode: '%s', cost: %s, p: None>" % \
             (self.action.__class__.__name__,
                 self.cost)
 
-class GoalBase(object):
+
+def plan(caller, actions, start_action, start_memory, goal):
     """
-    Goals:
-        can be satisfied.
-        can be valid
-
-    Goals, ActionPrereqs and ActionEffects are now that same class.  They share
-    so much functionality and are so logically similar that they have been made
-    into one class.
-
-    The only difference is how they are used.  If a goal is used by the planner
-    then that will be the final point of the plan.  if it is used in
-    conjunction with an action, then it will function as a prereq.
-    """
-
-    def __init__(self, *args, **kwargs):
-        try:
-            self.condition = args[0]
-        except IndexError:
-            self.condition = None
-
-        self.value = 1.0
-        self.args = args
-        self.kw = kwargs
-
-        self.satisfied = self.test
-
-    def touch(self, bb):
-        if DEBUG: print "[debug] goal {} has no touch method".format(self)
-
-    def test(self, bb):
-        if DEBUG: print "[debug] goal {} has no test method".format(self)
-
-    def get_relevancy(self, bb):
-        """
-        will return the "relevancy" value for this goal/prereq.
-
-        as a general rule, the return value here should never equal
-        what is returned from test()
-        """
-
-        if not self.test(bb): return self.value
-        return 0.0       
-
-
-    def self_test(self):
-        """
-        make sure the goal is sane
-        """
-
-        bb = Blackboard()
-        self.touch(bb)
-        assert self.test(bb) == True
-
-
-    def __repr__(self):
-        return "<{}>".format(self.__class__.__name__)
-
-
-class InstancedAction(object):
-    """
-    This action is suitable as a generic 'idling' action.
-    """
-
-    builder = None
-
-    def __init__(self):
-        self.state = ACTIONSTATE_FINISHED 
-
-    def update(self, time):
-        pass
-
-    def touch(self, bb):
-        if DEBUG: print "[debug] action {} has no touch method".format(self)
-
-    def test(self, bb):
-        if DEBUG: print "[debug] action {} has no test method".format(self)
-        return 1.0
-
-    def __repr__(self):
-        return self.__class__.__name__
-
-
-def plan(caller, actions, start_action, start_blackboard, goal):
-    """
-    differs slightly from normal astar in that:
-        there are no connections between nodes
-        the state of the "map" changes as the nodes are traversed
-        there is no closed list (behaves like a tree search)
-        hueristics are not available
-
-    this is not implied to be correct or effecient
+    Return a list of actions that could be called to satisfy the goal.
     """
 
     # the pushback is used to limit node access in the heap
     pushback = None 
-    success = False
-
-    keyNode = PlanningNode(None, start_action, start_blackboard)
-
+    keyNode = PlanningNode(None, start_action, start_memory)
     openlist = [(0, keyNode)]
 
     # the root can return a copy of itself, the others cannot
@@ -200,27 +108,27 @@ def plan(caller, actions, start_action, start_blackboard, goal):
     # this feature is currently on a hiatus
     return_parent = 0
 
-    if DEBUG: print "[plan] solve {} planning {}".format(goal, start_action)
+    debug("[plan] solve %s starting from %s", goal, start_action)
+    debug("[plan] memory supplied is %s", start_memory)
 
+    success = False
     while openlist or pushback:
 
         # get the best node.
-        if pushback == None:
+        if pushback is None:
             keyNode = heappop(openlist)[1]
         else:
-            keyNode = heappushpop(
-                openlist, (pushback.g + pushback.h, pushback))[1]
-
+            keyNode = heappushpop(openlist,
+                (pushback.g + pushback.h, pushback))[1]
             pushback = None
 
-        if DEBUG: print "[plan] testing action {}".format(keyNode.action)
-        if DEBUG: print "[plan] against bb {}".format(keyNode.bb.read())
+        #debug("[plan] testing %s against %s", keyNode.action, keyNode.memory)
 
         # if our goal is satisfied, then stop
-        #if (goal.satisfied(keyNode.bb)) and (return_parent == 0):
-        if goal.test(keyNode.bb):
+        #if (goal.satisfied(keyNode.memory)) and (return_parent == 0):
+        if goal.test(keyNode.memory):
             success = True
-            if DEBUG: print "[plan] successful {}".format(keyNode.action)
+            debug("[plan] successful %s", keyNode.action)
             break
 
         for child in get_children(caller, keyNode, actions, return_parent):
@@ -242,11 +150,9 @@ def plan(caller, actions, start_action, start_blackboard, goal):
 
     if success:
         path0 = [keyNode.action]
-        path1 = [keyNode]
-        while not keyNode.parent == None:
+        while not keyNode.parent is None:
             keyNode = keyNode.parent
             path0.append(keyNode.action)
-            path1.append(keyNode)
 
         return True, path0
 
