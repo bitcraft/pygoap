@@ -13,7 +13,7 @@ execute the action in some way, one after another.
 Actions need to be split into ActionInstances and ActionBuilders.
 
 An ActionInstance's job is to work in a planner and to carry out actions.
-A ActionBuilder's job is to query the caller and return a list of suitable
+A ActionBuilder's job is to query the parent and return a list of suitable
 actions for the memory.
 """
 
@@ -33,10 +33,10 @@ class ActionBuilder(object):
     tested.  Please make sure that the actions are valid.
     """
 
-    def __call__(self, caller, memory):
-        return self.get_actions(caller, memory)
+    def __call__(self, parent, memory):
+        return self.get_actions(parent, memory)
 
-    def get_actions(self, caller, memory):
+    def get_actions(self, parent, memory):
         """
         Return a list of actions
         """
@@ -51,8 +51,8 @@ class ActionContext(object):
     Context where actions take place.
     """
 
-    def __init__(self, caller, **kwargs):
-        self.caller  = caller
+    def __init__(self, parent, **kwargs):
+        self.parent  = parent
         self.state   = ACTIONSTATE_NOT_STARTED
         self.prereqs = []
         self.effects = []
@@ -71,9 +71,9 @@ class ActionContext(object):
         """
         Please do not override this method.  Use exit instead.
         """
-        if self.state is ACTIONSTATE_RUNNING:
+        if self.state == ACTIONSTATE_RUNNING:
             self.state = ACTIONSTATE_FINISHED
-        if self.state is not ACTIONSTATE_ABORTED:
+        if not self.state == ACTIONSTATE_ABORTED:
             self.exit()
         return False
 
@@ -95,15 +95,24 @@ class ActionContext(object):
         """
         pass
 
+    def finish(self):
+        """
+        Call this method when context is no longer needed or is finished.
+        Do not override.  Handle cleanup in exit instead.
+        """
+        self.state = ACTIONSTATE_FINISHED
+
     def fail(self):
         """
         Call this method if the context is not able to complete
+        Do not override.  Handle cleanup in exit instead.
         """
         self.state = ACTIONSTATE_FAILED
 
     def abort(self):
         """
         Call this method to stop this context without cleaning it up
+        Do not override.  Handle cleanup in exit instead.
         """
         self.state = ACTIONSTATE_ABORTED
 
@@ -122,9 +131,9 @@ class ActionContext(object):
         modify numerical values, it may be useful to return a fractional value.
         """
 
-        if memory is None: raise Exception
-
         if not self.prereqs: return 1.0
+
+        if memory is None: raise Exception
         values = ( i.test(memory) for i in self.prereqs )
 
         try:
@@ -139,7 +148,7 @@ class ActionContext(object):
         Call after the planning phase is complete.
         """
         if memory is None:
-            memory = self.caller.memory
+            memory = self.parent.memory
         [ i.touch(memory) for i in self.effects ]
 
     def __repr__(self):
@@ -153,8 +162,8 @@ class CalledOnceContext(ActionContext):
 
     def __enter__(self):
         if self.test() == 1.0:
-            super(CalledOnceContext, self).enter()
-            super(CalledOnceContext, self).exit()
+            super(CalledOnceContext, self).__enter__()
+            super(CalledOnceContext, self).__exit__()
         else:
             self.fail()
 

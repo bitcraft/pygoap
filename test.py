@@ -9,7 +9,7 @@ he should attempt to get drunk and sleep with her...
 ...any way he knows how.
 """
 
-__version__ = ".010"
+__version__ = ".012"
 
 from pygoap.agent import GoapAgent
 from pygoap.environment import ObjectBase
@@ -82,6 +82,7 @@ def run_once():
             pirate = Human("Male", "jack")
             load_commands(pirate, os.path.join("npc", "pirate"))
             pirate.add_goal(SimpleGoal(is_drunk=True))
+            pirate.add_goal(SimpleGoal(aware=True))
             formosa.add(pirate)
             formosa.set_position(pirate, (formosa, (0,0)))
 

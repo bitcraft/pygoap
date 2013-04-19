@@ -14,7 +14,7 @@ touch() should modify a memory in some meaningful way as if the action was
 finished successfully.
 """
 
-from blackboard import MemoryManager
+from memory import MemoryManager
 from precepts import *
 import sys, logging
 

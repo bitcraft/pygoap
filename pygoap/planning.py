@@ -1,9 +1,9 @@
-from blackboard import MemoryManager
+from memory import MemoryManager
 from actionstates import *
 from actions import *
 
 from heapq import heappop, heappush, heappushpop
-from itertools import permutations
+from itertools import permutations, chain
 import logging
 import sys
 
@@ -11,36 +11,21 @@ debug = logging.debug
 
 
 
-def get_children(caller, parent, builders, dupe_parent=False):
-    """
-    return every other action on this branch that has not already been used
-    """
-    def keep_node(node):
-        keep = True
-        node0 = node.parent
-        while not node0.parent == None:
-            if node0.parent == node:
-                keep = False
-                break
-            node0 = node0.parent
+def get_children(parent0, parent, builders):
+    def get_used_class(node):
+        while node.parent is not None:
+            yield node.builder
+            node = node.parent
 
-        return keep
+    used_class = set(get_used_class(parent))
 
-    def get_actions2(builders, caller, parent):
-        for builder in builders:
-            for action in builder(caller, parent.memory):
-                yield PlanningNode(parent, action)
+    for builder in builders:
+        if builder in used_class:
+            continue
 
-    def get_actions(builders, caller, parent):
-        for builder in builders:
-            for action in builder(caller, parent.memory):
-                node = PlanningNode(parent, action)
-                if keep_node(node): 
-                    yield node
-
-    #print list(permutations(get_actions2(builders, caller, parent)))
-
-    return get_actions(builders, caller, parent) 
+        for action in builder(parent0, parent.memory):
+            node = PlanningNode(parent, builder, action)
+            yield node
 
 
 def calcG(node):
@@ -55,8 +40,9 @@ class PlanningNode(object):
     """
     """
 
-    def __init__(self, parent, action, memory=None):
+    def __init__(self, parent, builder, action, memory=None):
         self.parent = parent
+        self.builder = builder
         self.action = action
         self.memory = MemoryManager()
         self.delta = MemoryManager()
@@ -93,20 +79,17 @@ class PlanningNode(object):
                 self.cost)
 
 
-def plan(caller, actions, start_action, start_memory, goal):
+def plan(parent, builders, start_action, start_memory, goal):
     """
-    Return a list of actions that could be called to satisfy the goal.
+    Return a list of builders that could be called to satisfy the goal.
+    Cannot duplicate builders in the plan
     """
 
     # the pushback is used to limit node access in the heap
     pushback = None 
-    keyNode = PlanningNode(None, start_action, start_memory)
+    keyNode = PlanningNode(None, None, start_action, start_memory)
     openlist = [(0, keyNode)]
-
-    # the root can return a copy of itself, the others cannot
-    # this allows the planner to produce plans that duplicate actions
-    # this feature is currently on a hiatus
-    return_parent = 0
+    closedlist = []
 
     debug("[plan] solve %s starting from %s", goal, start_action)
     debug("[plan] memory supplied is %s", start_memory)
@@ -114,24 +97,21 @@ def plan(caller, actions, start_action, start_memory, goal):
     success = False
     while openlist or pushback:
 
-        # get the best node.
+        # get the best node and remove it from the openlist
         if pushback is None:
             keyNode = heappop(openlist)[1]
         else:
             keyNode = heappushpop(openlist,
                 (pushback.g + pushback.h, pushback))[1]
             pushback = None
-
-        #debug("[plan] testing %s against %s", keyNode.action, keyNode.memory)
-
+    
         # if our goal is satisfied, then stop
-        #if (goal.satisfied(keyNode.memory)) and (return_parent == 0):
         if goal.test(keyNode.memory):
             success = True
             debug("[plan] successful %s", keyNode.action)
             break
 
-        for child in get_children(caller, keyNode, actions, return_parent):
+        for child in get_children(parent, keyNode, builders):
             if child in openlist:
                 possG = keyNode.g + child.cost
                 if (possG < child.g):
@@ -140,21 +120,19 @@ def plan(caller, actions, start_action, start_memory, goal):
                     # TODO: update the h score
             else:
                 # add node to our openlist, using pushpack if needed
-                if pushback == None:
+                if pushback is None:
                     heappush(openlist, (child.g + child.h, child))
                 else:
                     heappush(openlist, (pushback.g + pushback.h, pushback))
-                pushpack = child
-
-        return_parent = 0
+                pushback = child
 
     if success:
-        path0 = [keyNode.action]
-        while not keyNode.parent is None:
+        path = [keyNode.action]
+        while keyNode.parent is not None:
+            path.append(keyNode.action)
             keyNode = keyNode.parent
-            path0.append(keyNode.action)
 
-        return path0
+        return path
 
     else:
         return []

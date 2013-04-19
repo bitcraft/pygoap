@@ -49,7 +49,7 @@ class Environment(object):
         self.time = time
         self._agents = []
         self._entities = []
-        self._positions = []
+        self._positions = {}
 
         [ self.add(i) for i in entities ]
         [ self.add(i) for i in agents ]
@@ -67,6 +67,14 @@ class Environment(object):
     def get_position(self, entity):
         raise NotImplementedError
 
+
+    # this is a placeholder hack.  proper handling will go through
+    # model_precept()
+    def look(self, caller):
+        for i in chain(self._entities, self._agents):
+            caller.process(LocationPrecept(i, self._positions[i]))
+
+
     def run(self, steps=1000):
         """
         Run the Environment for given number of time steps.
@@ -81,8 +89,18 @@ class Environment(object):
 
         from agent import GoapAgent
 
-
         debug("[env] adding %s", entity)
+
+
+        # hackish way to force agents to re-evaulate their environment
+        for a in self._agents:
+            to_remove = []
+
+            for p in a.memory.of_class(DatumPrecept):
+                if p.name == 'aware':
+                    to_remove.append(p)
+
+            [ a.memory.remove(p) for p in to_remove]
 
         # add the agent
         if isinstance(entity, GoapAgent):
@@ -112,18 +130,17 @@ class Environment(object):
         p = TimePrecept(self.time) 
         [ a.process(p) for a in self.agents ]
 
-        [ self.look(a) for a in self.agents ]
-
         # get all the running actions for the agents
         self.action_que = [ a.running_actions() for a in self.agents ]
+
+        # start any actions that are not started
+        [ action.__enter__() for action in self.action_que 
+            if action.state == ACTIONSTATE_NOT_STARTED ]
 
         # update all the actions that may be running
         precepts = [ a.update(time_passed) for a in self.action_que ]
         precepts = [ p for p in precepts if not p == None ]
- 
-        # start any actions that are not started
-        [ action.enter() for action in self.action_que 
-            if action.state == ACTIONSTATE_NOT_STARTED ]
+
 
     def broadcast_precepts(self, precepts, agents=None):
         """

@@ -81,19 +81,19 @@ class XYEnvironment(Environment, Pathfinding2D):
     def model_sound(self, precept, origin, terminus):
         return precept
 
-    def look(self, caller, direction=None, distance=None):
+    def look(self, parent, direction=None, distance=None):
         """
-        Simulate vision by sending precepts to the caller.
+        Simulate vision by sending precepts to the parent.
         """
 
         model = self.model_precept
 
         for entity in self.entities:
-            caller.process(
+            parent.process(
                 model(
                     PositionPrecept(
                         entity, self.get_position(entity)),
-                    caller
+                    parent
                 )
             )
 

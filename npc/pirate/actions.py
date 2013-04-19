@@ -21,16 +21,15 @@ def get_position(entity, memory):
             return pct.position
 
 
+class LookAction(CalledOnceContext):
+    def enter(self):
+        print "LOOKING"
+        self.parent.environment.look(self.parent)
+
+
 class MoveAction(ActionContext):
     def update(self, time):
-        super(MoveAction, self).update(time)
-        if self.caller.position[1] == self.endpoint:
-            self.finish()
-        else:
-            env = self.caller.environment
-            path = env.pathfind(self.caller.position[1], self.endpoint)
-            path.pop() # this will always the the starting position
-            env.move(self.caller, (env, path.pop()))
+        print self, "moving?"
 
     def setStartpoint(self, pos):
         self.startpoint = pos
@@ -123,3 +122,13 @@ class drink_rum(ActionBuilder):
 
 exported_actions.append(drink_rum)
 
+
+
+class look(ActionBuilder):
+    def get_actions(self, caller, memory):
+        action = LookAction(caller)
+        action.effects.append(SimpleGoal(aware=True))
+        yield action
+        
+
+exported_actions.append(look)

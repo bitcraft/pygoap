@@ -1,7 +1,7 @@
 from environment import ObjectBase
 from planning import plan
 from actions import ActionContext
-from blackboard import MemoryManager
+from memory import MemoryManager
 from actionstates import *
 from precepts import *
 import logging
@@ -11,6 +11,8 @@ debug = logging.debug
 
 
 NullAction = ActionContext(None)
+NullAction.__enter__()
+NullAction.__exit__()
 
 # required to reduce memory usage
 def time_filter(precept):
@@ -29,11 +31,12 @@ class GoapAgent(ObjectBase):
     interested = []
     idle_timeout = 30
 
-    def __init__(self):
+    def __init__(self, name=None):
+        super(GoapAgent, self).__init__(name)
         self.memory = MemoryManager()
         self.planner = plan
 
-        self.current_goal   = None
+        self.current_goal = None
 
         self.goals = []             # all goals this instance can use
         self.filters = []           # list of methods to use as a filter
@@ -61,7 +64,6 @@ class GoapAgent(ObjectBase):
         precepts can be put through filters to change them.
         this can be used to simulate errors in judgement by the agent.
         """
-
         for f in self.filters:
             precept = f(precept)
             if precept is None:
@@ -80,7 +82,10 @@ class GoapAgent(ObjectBase):
             debug("[agent] %s recv'd precept %s", self, precept)
             self.memory.add(precept)
 
-        return self.next_action()
+        if self.next_action is NullAction:
+            self.replan()
+            return self.next_action
+
 
     def replan(self):
         """
@@ -94,42 +99,62 @@ class GoapAgent(ObjectBase):
 
         debug("[agent] goals %s", s)
 
+        start_action = NullAction
+
         # starting for the most relevant goal, attempt to make a plan
-        plan = []      
+        self.plan = []      
         for score, goal in s:
             tentative_plan = self.planner(self, self.actions,
-                self.current_action, self.memory, goal)
+                start_action, self.memory, goal)
 
             if tentative_plan:
+                tentative_plan.pop()
                 pretty = list(reversed(tentative_plan[:]))
                 debug("[agent] %s has planned to %s", self, goal)
                 debug("[agent] %s has plan %s", self, pretty)
-                plan = tentative_plan
+                self.plan = tentative_plan
+                self.current_goal = goal
                 break
 
-        return plan
+
+    # we only support one concurrent action (i'm lazy)
+    def running_actions(self):
+        return self.current_action
 
     @property
     def current_action(self):
+        """
+        get the current action of the current plan
+        """
+
         try:
             return self.plan[-1]
         except IndexError:
             return NullAction
 
-    def running_actions(self):
-        return self.current_action
-
+    @property
     def next_action(self):
         """
-        get the next action of the current plan
+        if the current action is finished, return the next
+        otherwise, return the current action
         """
 
-        if self.plan == []:
-            self.plan = self.replan()
-
-        # this action is done, so return the next one
+        # this action is done
         if self.current_action.state == ACTIONSTATE_FINISHED:
-            return self.plan.pop() if self.plan else None
+
+            # there are more actions in the queue, so just return the next one
+            if self.plan:
+                return self.plan.pop()
+
+            # no more actions, so the plan worked!
+            else:
+
+                # let the goal do its magic to the memory manager
+                if self.current_goal:
+                    self.current_goal.touch(self.memory)
+                    self.current_goal = None
+           
+                return NullAction
 
         # this action failed somehow
         elif self.current_action.state == ACTIONSTATE_FAILED:
@@ -137,6 +162,4 @@ class GoapAgent(ObjectBase):
 
         # our action is still running, just run that
         elif self.current_action.state == ACTIONSTATE_RUNNING:
-            return current_action
-
-
+            return self.current_action
