@@ -95,6 +95,11 @@ def run_once():
             wench = Human("Female", "wench")
             formosa.add(wench)
 
+        if time >= 1:
+            if pirate.condition('drunk'):
+                print "YAY!  A drunk pirate is a happy pirate!"
+                print "Test concluded"
+
         screen_buf.fill((0,128,255))
         formosa.render(screen_buf)
         pygame.transform.scale2x(screen_buf, screen)

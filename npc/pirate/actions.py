@@ -65,7 +65,7 @@ class DrinkRumAction(ActionContext):
     def update(self, time):
         self.drunkness += 1
         if self.drunkness >= 3:
-            print "DRUNK!"
+            self.parent.set_condition('drunk', True)
             self.finish()
 
 exported_actions = []
@@ -120,7 +120,7 @@ class drink_rum(ActionBuilder):
     """
     def get_actions(self, caller, memory):
         for pct in memory.of_class(PositionPrecept):
-            print "looking for rum", pct
+            #print "looking for rum", pct
             if pct.position[0] == 'self' and pct.entity.name == "rum":
                 action = DrinkRumAction(caller)
                 action.effects.append(SimpleGoal(is_drunk=True))

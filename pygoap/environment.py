@@ -29,12 +29,22 @@ class ObjectBase(object):
 
     def __init__(self, name='noname'):
         self.name = name
+        self._condition = {}
 
     def get_actions(self, other):
         """
         generate a list of actions that could be used with this object
         """
         return []        
+
+    def condition(self, name):
+        try:
+            return self._condition[name]
+        except KeyError:
+            return False
+
+    def set_condition(self, name, value):
+        self._condition[name] = value
 
     def __repr__(self):
         return "<Object: {}>".format(self.name)
