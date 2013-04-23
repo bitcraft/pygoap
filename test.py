@@ -3,13 +3,13 @@ lets make a drunk pirate.
 
 scenerio:
     the pirate begins by idling
-    soon....he spies a woman
+    soon....he spies rum...
 
-he should attempt to get drunk and sleep with her...
+he should attempt to get drunk...
 ...any way he knows how.
 """
 
-__version__ = ".012"
+__version__ = ".013"
 
 from pygoap.agent import GoapAgent
 from pygoap.environment import ObjectBase
@@ -27,6 +27,8 @@ logging.basicConfig(level=00)
 stdout = sys.stdout
 global_actions = {}
 
+
+# somewhat hackish way to load actions (they are in the npcs/pirate folder)
 def load_commands(agent, path):
     mod = imp.load_source("actions", os.path.join(path, "actions.py"))
     global_actions = dict([ (c.__name__, c()) for c in mod.exported_actions ])
@@ -37,6 +39,7 @@ def load_commands(agent, path):
     [ agent.add_action(a) for a in global_actions.values() ]
 
 
+# precept filter for the pirate to search for females
 def is_female(precept):
     try:
         thing = precept.thing
@@ -46,7 +49,7 @@ def is_female(precept):
         if isinstance(thing, Human):
             return thing.gender == "Female"
 
-
+# subclass the basic GoapAgent class to give them gender and names
 class Human(GoapAgent):
     def __init__(self, gender, name="welp"):
         super(Human, self).__init__()
@@ -66,7 +69,7 @@ def run_once():
 
     screen_buf = pygame.Surface((240, 240))
     
-    # make our little cove
+    # make our little cove is a Tiled TMX map
     formosa = TiledEnvironment("formosa.tmx")
 
     time = 0
@@ -78,20 +81,38 @@ def run_once():
 
         formosa.run(1)
 
+
+        # for the demo, we add items at different timesteps to debug and monitor
+        # changes in the planner
+
+        # add the pirate
         if time == 1:
             pirate = Human("Male", "jack")
             load_commands(pirate, os.path.join("npc", "pirate"))
+            
+            # give the pirate a goal that makes him want to get drunk
             pirate.add_goal(SimpleGoal(is_drunk=True))
+
+            # this goal forces the agent to scan the environment if something
+            # changes.  think of it as 'desire to be aware of the surroundings'
             pirate.add_goal(SimpleGoal(aware=True))
+
             formosa.add(pirate)
+            
+            # positions are a tuple: (container, (x, y))
+            # this allows for objects to hold other objects
             formosa.set_position(pirate, (formosa, (0,0)))
 
         elif time == 3:
+
+            # create rum and add it
             rum = ObjectBase("rum")
             formosa.add(rum)
             formosa.set_position(rum, (formosa, (2,5)))
 
         elif time == 6:
+
+            # create a woman and add her
             wench = Human("Female", "wench")
             formosa.add(wench)
 
@@ -100,6 +121,7 @@ def run_once():
                 print "YAY!  A drunk pirate is a happy pirate!"
                 print "Test concluded"
 
+        # clear the screen and paint the map
         screen_buf.fill((0,128,255))
         formosa.render(screen_buf)
         pygame.transform.scale2x(screen_buf, screen)
@@ -145,7 +167,6 @@ def run_once():
 if __name__ == "__main__":
     import cProfile
     import pstats
-
 
     try:
         cProfile.run('run_once()', "pirate.prof")
