@@ -29,7 +29,6 @@ class TiledEnvironment(XYEnvironment):
 
         for t in self.entities:
             env, (x, y) = self.get_position(t)
-            print env, x, y
             x *= self.tiledmap.tilewidth
             y *= self.tiledmap.tileheight
 

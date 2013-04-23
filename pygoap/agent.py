@@ -97,7 +97,7 @@ class GoapAgent(ObjectBase):
         s = [ g for g in s if g[0] > 0.0 ]
         s.sort(reverse=True)
 
-        debug("[agent] goals %s", s)
+        debug("[agent] %s goals %s", self, s)
 
         start_action = NullAction
 

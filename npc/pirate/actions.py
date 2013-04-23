@@ -39,7 +39,8 @@ class MoveAction(ActionContext):
             pos = self.path.pop()
             self.parent.environment.set_position(self.parent,
                     (self.parent.environment, pos))
-        else:
+
+        if not self.path:
             self.finish()
 
     def setStartpoint(self, pos):
@@ -58,11 +59,13 @@ class PickupAction(CalledOnceContext):
 
 class DrinkRumAction(ActionContext):
     def enter(self):
+        print "drinking!"
         self.drunkness = 1
         
     def update(self, time):
         self.drunkness += 1
-        if self.drunkness == 5:
+        if self.drunkness >= 3:
+            print "DRUNK!"
             self.finish()
 
 exported_actions = []
@@ -90,7 +93,6 @@ class move_to_entity(ActionBuilder):
             action.setStartpoint(here)
             action.setEndpoint(pct.position[1])
             action.effects.append(PositionGoal(caller, pct.position))
-            print ">>> MOVE >>>", action, action.startpoint, action.endpoint
             yield action
 
 exported_actions.append(move_to_entity)
@@ -118,10 +120,11 @@ class drink_rum(ActionBuilder):
     """
     def get_actions(self, caller, memory):
         for pct in memory.of_class(PositionPrecept):
+            print "looking for rum", pct
             if pct.position[0] == 'self' and pct.entity.name == "rum":
                 action = DrinkRumAction(caller)
                 action.effects.append(SimpleGoal(is_drunk=True))
-                action.effects.append(EvalGoal("charisma = charisma + 10"))
+                #action.effects.append(EvalGoal("charisma = charisma + 10"))
                 yield action
 
 
