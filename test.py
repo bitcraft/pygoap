@@ -89,7 +89,7 @@ def run_once():
         elif time == 3:
             rum = ObjectBase("rum")
             formosa.add(rum)
-            formosa.set_position(rum, (formosa, (0,2)))
+            formosa.set_position(rum, (formosa, (2,5)))
 
         elif time == 6:
             wench = Human("Female", "wench")

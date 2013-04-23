@@ -129,8 +129,8 @@ def plan(parent, builders, start_action, start_memory, goal):
     if success:
         path = [keyNode.action]
         while keyNode.parent is not None:
-            path.append(keyNode.action)
             keyNode = keyNode.parent
+            path.append(keyNode.action)
 
         return path
 

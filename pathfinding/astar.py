@@ -60,6 +60,7 @@ def search(start, finish, factory):
 
     finishNode = factory(finish)
     startNode = factory(start)
+    print finishNode, startNode
     startNode.h = calcH(startNode, finishNode)
 
     # used to locate nodes in the heap and modify their f scores

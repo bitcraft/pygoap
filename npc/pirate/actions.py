@@ -23,13 +23,24 @@ def get_position(entity, memory):
 
 class LookAction(CalledOnceContext):
     def enter(self):
-        print "LOOKING"
         self.parent.environment.look(self.parent)
 
 
 class MoveAction(ActionContext):
+    def enter(self):
+        self.path = self.parent.environment.pathfind(self.startpoint,
+                    self.endpoint)
+
+        # remove the first node, which is the starting node
+        self.path.pop()
+
     def update(self, time):
-        print self, "moving?"
+        if self.path:
+            pos = self.path.pop()
+            self.parent.environment.set_position(self.parent,
+                    (self.parent.environment, pos))
+        else:
+            self.finish()
 
     def setStartpoint(self, pos):
         self.startpoint = pos
@@ -46,34 +57,27 @@ class PickupAction(CalledOnceContext):
 
 
 class DrinkRumAction(ActionContext):
-    def start(self):
-        self.caller.drunkness = 1
-        super(drink_rum, self).start()
+    def enter(self):
+        self.drunkness = 1
         
     def update(self, time):
-        if self.valid():
-            self.caller.drunkness += 1
-            if self.caller.drunkness == 5:
-                self.finish()
-        else:
-            self.fail()
-
-    def finish(self):
-        super(drink_rum, self).finish()
-
-
+        self.drunkness += 1
+        if self.drunkness == 5:
+            self.finish()
 
 exported_actions = []
+
+
+###  ACTION BUILDERS
+###
 
 class move_to_entity(ActionBuilder):
     """
     return a list of action that this caller is able to move with
-
-    you MUST have a mechanism that depletes a counter when moving, otherwise
-    the planner will loop lessly moving the agent around to different places.
     """
 
     def get_actions(self, caller, memory):
+        here = get_position(caller, memory) 
         visited = []
 
         for pct in memory.of_class(PositionPrecept):
@@ -83,8 +87,10 @@ class move_to_entity(ActionBuilder):
             visited.append(pct.position)
 
             action = MoveAction(caller)
+            action.setStartpoint(here)
             action.setEndpoint(pct.position[1])
             action.effects.append(PositionGoal(caller, pct.position))
+            print ">>> MOVE >>>", action, action.startpoint, action.endpoint
             yield action
 
 exported_actions.append(move_to_entity)
@@ -110,7 +116,6 @@ class drink_rum(ActionBuilder):
     """
     drink rum that is in caller's inventory
     """
-
     def get_actions(self, caller, memory):
         for pct in memory.of_class(PositionPrecept):
             if pct.position[0] == 'self' and pct.entity.name == "rum":
@@ -121,7 +126,6 @@ class drink_rum(ActionBuilder):
 
 
 exported_actions.append(drink_rum)
-
 
 
 class look(ActionBuilder):

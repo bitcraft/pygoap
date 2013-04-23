@@ -40,8 +40,8 @@ class Pathfinding2D(object):
         """
         Return all positions around this one.
         """
-
         x, y = position
+
         return ((x-1, y-1), (x-1, y), (x-1, y+1), (x, y-1), (x, y+1),
                 (x+1, y-1), (x+1, y), (x+1, y+1))
                 
@@ -49,7 +49,18 @@ class Pathfinding2D(object):
         return distance(position1, position2)
 
     def factory(self, position):
-        return Node(position)
+        
+        # EPIC HACK
+        # fix this when position conventions are standardized
+        try:
+            if len(position[1]) == 2:
+                x, y = position[1]
+            else:
+                x, y = position
+        except TypeError:
+            x, y = position
+                
+        return Node((x, y))
 
 
 class XYEnvironment(Environment, Pathfinding2D):
