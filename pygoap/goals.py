@@ -3,7 +3,7 @@ Goals in the context of a pyGOAP agent give the planner some direction when
 planning.  Goals are known to the agent and are constantly monitored and
 evaluated.  The agent will attempt to choose the most relevant goal for it's
 state (determined by the blackboard) and then the planner will determine a
-plan for the agent to follw that will (possibly) satisfy the chosen goal.
+plan for the agent to follow that will (possibly) satisfy the chosen goal.
 
 See the modules effects.py and goals.py to see how these are used.
 
@@ -15,6 +15,7 @@ finished successfully.
 """
 
 from memory import MemoryManager
+from environment2d import distance
 from precepts import *
 import sys, logging
 
@@ -186,13 +187,13 @@ class PositionGoal(GoalBase):
 
     def test(self, memory):
         """
-        search memory for last known position of the target if target is not
-        in agent's memory return 0.0.
+        search memory for last known position of the target
+        if target is not in agent's memory then return 0.0.
 
-        do pathfinding and determine if the target is accessable
-            - if not return 0.0
+        do pathfinding and determine if the target is accessible
+        if not return 0.0
 
-        determine the distance required to travel to the target
+        Determine the distance required to travel to the target
         return 1.0 if the target is reachable
         """
 
